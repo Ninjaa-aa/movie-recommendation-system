@@ -1,0 +1,154 @@
+# docs/swagger/search.yaml
+openapi: 3.0.0
+info:
+  title: Search API
+  version: 1.0.0
+  description: API endpoints for movie search and filtering
+
+paths:
+  /api/v1/search/movies:
+    get:
+      tags:
+        - Search
+      summary: Search and filter movies
+      parameters:
+        - name: searchTerm
+          in: query
+          schema:
+            type: string
+          description: Search term for title, director, or actors
+        - name: genre
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: false
+          description: Filter by genre(s)
+        - name: minRating
+          in: query
+          schema:
+            type: number
+          description: Minimum rating filter
+        - name: maxRating
+          in: query
+          schema:
+            type: number
+          description: Maximum rating filter
+        - name: releaseYear
+          in: query
+          schema:
+            type: integer
+          description: Filter by specific year
+        - name: decade
+          in: query
+          schema:
+            type: integer
+          description: Filter by decade
+        - name: language
+          in: query
+          schema:
+            type: string
+          description: Filter by language
+        - name: ageRating
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: false
+          description: Filter by age rating(s)
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Filter by movie status
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [releaseDate, rating, title]
+          description: Sort results by field
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Movies retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieSearchResponse'
+
+  /api/v1/search/top-movies:
+    get:
+      tags:
+        - Search
+      summary: Get top movies by various criteria
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [week, month, year]
+          description: Time period for top movies
+        - name: genre
+          in: query
+          schema:
+            type: string
+          description: Filter top movies by genre
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [releaseDate, rating, title]
+          description: Sort results by field
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Top movies retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieSearchResponse'
+
+components:
+  schemas:
+    MovieSearchResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/Movie'
+            total:
+              type: integer
+            page:
+              type: integer
+            totalPages:
+              type: integer
