@@ -1,0 +1,158 @@
+# src/docs/swagger/wishlist.yaml
+openapi: 3.0.0
+paths:
+  /api/v1/wishlist:
+    get:
+      tags:
+        - Wishlist
+      summary: Get user's wishlist
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Wishlist retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    
+    post:
+      tags:
+        - Wishlist
+      summary: Add movie to wishlist
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WishlistAdd'
+      responses:
+        '201':
+          description: Movie added to wishlist successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/wishlist/{movieId}:
+    delete:
+      tags:
+        - Wishlist
+      summary: Remove movie from wishlist
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: movieId
+          required: true
+          schema:
+            type: string
+          description: ID of the movie to remove
+      responses:
+        '200':
+          description: Movie removed from wishlist successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags:
+        - Wishlist
+      summary: Update movie notes and priority
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: movieId
+          required: true
+          schema:
+            type: string
+          description: ID of the movie to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WishlistUpdate'
+      responses:
+        '200':
+          description: Movie updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+  schemas:
+    WishlistAdd:
+      type: object
+      required:
+        - movieId
+        - title
+      properties:
+        movieId:
+          type: string
+        title:
+          type: string
+        notes:
+          type: string
+        priority:
+          type: string
+          enum: [Low, Medium, High]
+
+    WishlistUpdate:
+      type: object
+      properties:
+        notes:
+          type: string
+        priority:
+          type: string
+          enum: [Low, Medium, High]
+
+    WishlistResponse:
+      allOf:
+        - $ref: '#/components/schemas/Success'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                wishlist:
+                  type: object
+                  properties:
+                    movies:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          movieId:
+                            type: string
+                          title:
+                            type: string
+                          addedAt:
+                            type: string
+                            format: date-time
+                          notes:
+                            type: string
+                          priority:
+                            type: string
+                            enum: [Low, Medium, High]
