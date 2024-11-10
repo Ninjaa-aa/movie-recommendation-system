@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('./auth.controller');
 const { verifyToken } = require('../../../config/jwt');
-const validate = require('../../../middleware/validation.middleware');
+const { validate } = require('../../../middleware/validation.middleware');
 const authValidation = require('./auth.validation');
 
 // Public routes

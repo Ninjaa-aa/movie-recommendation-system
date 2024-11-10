@@ -1,26 +1,37 @@
 // src/middleware/validation.middleware.js
-const { ApiError } = require('../utils/apiResponse');
+const { ApiResponse } = require('../utils/apiResponse');
 
-const validate = (schema, property = 'body') => {
+exports.validate = (schema) => {
   return (req, res, next) => {
-    const { error } = schema.validate(req[property], {
-      errors: {
-        wrap: {
-          label: ''
-        }
-      },
-      abortEarly: false
-    });
+    const validationErrors = [];
 
-    if (error) {
-      const errorMessage = error.details
-        .map((detail) => detail.message)
+    if (schema.params) {
+      const { error } = schema.params.validate(req.params);
+      if (error) validationErrors.push(error);
+    }
+
+    if (schema.query) {
+      const { error } = schema.query.validate(req.query);
+      if (error) validationErrors.push(error);
+    }
+
+    if (schema.body) {
+      const { error } = schema.body.validate(req.body);
+      if (error) validationErrors.push(error);
+    }
+
+    if (validationErrors.length > 0) {
+      const errorMessage = validationErrors
+        .map(error => error.details.map(detail => detail.message))
+        .flat()
         .join(', ');
-      return next(new ApiError(400, errorMessage));
+
+      return ApiResponse.error(res, {
+        statusCode: 422,
+        message: errorMessage
+      });
     }
 
     next();
   };
 };
-
-module.exports = validate;

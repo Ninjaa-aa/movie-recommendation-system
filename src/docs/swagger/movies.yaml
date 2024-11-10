@@ -1,0 +1,309 @@
+# docs/swagger/movies.yaml
+paths:
+  /api/v1/movies:
+    post:
+      tags:
+        - Movies
+      summary: Create a new movie
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovieInput'
+      responses:
+        201:
+          description: Movie created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/ForbiddenError'
+        422:
+          $ref: '#/components/responses/ValidationError'
+    
+    get:
+      tags:
+        - Movies
+      summary: Get movies list with pagination and filters
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Items per page
+        - in: query
+          name: genre
+          schema:
+            type: string
+          description: Filter by genre
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search in title and director
+      responses:
+        200:
+          description: Movies retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoviesListResponse'
+
+  /api/v1/movies/{movieId}:
+    get:
+      tags:
+        - Movies
+      summary: Get movie by ID
+      parameters:
+        - in: path
+          name: movieId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Movie retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+        404:
+          description: Movie not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    
+    put:
+      tags:
+        - Movies
+      summary: Update movie
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: movieId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovieUpdateInput'
+      responses:
+        200:
+          description: Movie updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/ForbiddenError'
+        404:
+          description: Movie not found
+    
+    delete:
+      tags:
+        - Movies
+      summary: Delete movie
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: movieId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Movie deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/ForbiddenError'
+        404:
+          description: Movie not found
+
+components:
+  schemas:
+    MovieInput:
+      type: object
+      required:
+        - title
+        - genre
+        - director
+        - cast
+        - releaseDate
+        - runtime
+        - synopsis
+        - coverPhoto
+        - ageRating
+      properties:
+        title:
+          type: string
+          example: "The Shawshank Redemption"
+        genre:
+          type: array
+          items:
+            type: string
+          example: ["Drama", "Crime"]
+        director:
+          type: string
+          example: "Frank Darabont"
+        cast:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              role:
+                type: string
+          example:
+            - name: "Tim Robbins"
+              role: "Andy Dufresne"
+        releaseDate:
+          type: string
+          format: date
+          example: "1994-09-23"
+        runtime:
+          type: number
+          example: 142
+        synopsis:
+          type: string
+          example: "Two imprisoned men bond over a number of years..."
+        coverPhoto:
+          type: string
+          example: "https://example.com/movie-cover.jpg"
+        trivia:
+          type: array
+          items:
+            type: string
+        goofs:
+          type: array
+          items:
+            type: string
+        soundtrack:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              artist:
+                type: string
+              duration:
+                type: string
+        ageRating:
+          type: string
+          enum: [G, PG, PG-13, R, NC-17]
+          example: "R"
+
+    MovieUpdateInput:
+      type: object
+      properties:
+        title:
+          type: string
+        genre:
+          type: array
+          items:
+            type: string
+        director:
+          type: string
+        cast:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              role:
+                type: string
+        releaseDate:
+          type: string
+          format: date
+        runtime:
+          type: number
+        synopsis:
+          type: string
+        coverPhoto:
+          type: string
+        ageRating:
+          type: string
+          enum: [G, PG, PG-13, R, NC-17]
+
+    MovieResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Movie operation successful"
+        data:
+          $ref: '#/components/schemas/Movie'
+
+    MoviesListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Movies retrieved successfully"
+        data:
+          type: object
+          properties:
+            movies:
+              type: array
+              items:
+                $ref: '#/components/schemas/Movie'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    Movie:
+      allOf:
+        - $ref: '#/components/schemas/MovieInput'
+        - type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439011"
+            avgRating:
+              type: number
+              example: 4.5
+            isActive:
+              type: boolean
+              example: true
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time

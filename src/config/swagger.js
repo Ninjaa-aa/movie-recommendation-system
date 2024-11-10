@@ -25,14 +25,16 @@ const setupSwagger = (app) => {
   // Load Swagger documents with error handling
   const baseSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/base.yaml'));
   const authSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/auth.yaml'));
-  const usersSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/users.yaml')); // Changed from user.yaml to users.yaml
+  const usersSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/users.yaml'));
   const wishlistSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/wishlist.yaml'));
+  const moviesSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/movies.yaml')); // Added movies swagger
 
   // Log loaded paths for debugging
   logger.debug('Loaded paths:', {
     auth: Object.keys(authSwagger.paths || {}),
     users: Object.keys(usersSwagger.paths || {}),
-    wishlist: Object.keys(wishlistSwagger.paths || {})
+    wishlist: Object.keys(wishlistSwagger.paths || {}),
+    movies: Object.keys(moviesSwagger.paths || {}) // Added movies paths
   });
 
   // Combine all swagger documents
@@ -52,12 +54,14 @@ const setupSwagger = (app) => {
     tags: [
       { name: 'Authentication', description: 'Authentication endpoints' },
       { name: 'Users', description: 'User management endpoints' },
-      { name: 'Wishlist', description: 'Wishlist management endpoints' }
+      { name: 'Wishlist', description: 'Wishlist management endpoints' },
+      { name: 'Movies', description: 'Movie management endpoints' } // Added movies tag
     ],
     paths: {
       ...(authSwagger.paths || {}),
       ...(usersSwagger.paths || {}),
-      ...(wishlistSwagger.paths || {})
+      ...(wishlistSwagger.paths || {}),
+      ...(moviesSwagger.paths || {}) // Added movies paths
     },
     components: {
       securitySchemes: {
@@ -71,13 +75,15 @@ const setupSwagger = (app) => {
         ...(baseSwagger.components?.schemas || {}),
         ...(authSwagger.components?.schemas || {}),
         ...(usersSwagger.components?.schemas || {}),
-        ...(wishlistSwagger.components?.schemas || {})
+        ...(wishlistSwagger.components?.schemas || {}),
+        ...(moviesSwagger.components?.schemas || {}) // Added movies schemas
       },
       responses: {
         ...(baseSwagger.components?.responses || {}),
         ...(authSwagger.components?.responses || {}),
         ...(usersSwagger.components?.responses || {}),
-        ...(wishlistSwagger.components?.responses || {})
+        ...(wishlistSwagger.components?.responses || {}),
+        ...(moviesSwagger.components?.responses || {}) // Added movies responses
       }
     }
   };

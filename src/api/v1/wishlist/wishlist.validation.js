@@ -2,22 +2,29 @@
 const Joi = require('joi');
 
 const wishlistValidation = {
-  addMovie: Joi.object({
-    movieId: Joi.string().required(),
-    title: Joi.string().required(),
-    notes: Joi.string().max(500),
-    priority: Joi.string().valid('Low', 'Medium', 'High')
-  }),
+  addMovie: {
+    body: Joi.object({
+      movieId: Joi.string().required(),
+      notes: Joi.string().max(500),
+      priority: Joi.number().min(1).max(5)
+    })
+  },
 
-  // For URL params validation
-  params: Joi.object({
-    movieId: Joi.string().required()
-  }),
+  updateMovie: {
+    params: Joi.object({
+      movieId: Joi.string().required()
+    }),
+    body: Joi.object({
+      notes: Joi.string().max(500),
+      priority: Joi.number().min(1).max(5)
+    }).min(1)
+  },
 
-  updateMovie: Joi.object({
-    notes: Joi.string().max(500),
-    priority: Joi.string().valid('Low', 'Medium', 'High')
-  }).min(1) // At least one field must be provided
+  params: {
+    params: Joi.object({
+      movieId: Joi.string().required()
+    })
+  }
 };
 
 module.exports = wishlistValidation;
