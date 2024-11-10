@@ -29,6 +29,7 @@ const setupSwagger = (app) => {
     const recommendationSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/recommendation.yaml'));
     const movieListSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/movie-list.yaml'));
     const searchSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/search.yaml'));
+    const releaseNotificationSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/release-notification.yaml'));
 
     // Log loaded paths for debugging
     // logger.debug('Loaded paths:', {
@@ -62,7 +63,8 @@ const setupSwagger = (app) => {
         { name: 'Reviews', description: 'Movie review endpoints' },
         { name: 'Recommendations', description: 'Movie recommendation endpoints' },
         { name: 'Movie Lists', description: 'Movie list management endpoints' },
-        { name: 'Search', description: 'Search endpoints' }
+        { name: 'Search', description: 'Search endpoints' },
+        { name: 'Release Notifications', description: 'Release notification endpoints' }
       ],
       paths: {
         ...(authSwagger.paths || {}),
@@ -72,7 +74,8 @@ const setupSwagger = (app) => {
         ...(ratingReviewSwagger.paths || {}),
         ...(recommendationSwagger.paths || {}),
         ...(movieListSwagger.paths || {}),
-        ...(searchSwagger.paths || {})
+        ...(searchSwagger.paths || {}),
+        ...(releaseNotificationSwagger.paths || {})
       },
       components: {
         securitySchemes: {
@@ -91,7 +94,8 @@ const setupSwagger = (app) => {
           ...(ratingReviewSwagger.components?.schemas || {}),
           ...(recommendationSwagger.components?.schemas || {}),
           ...(movieListSwagger.components?.schemas || {}),
-          ...(searchSwagger.components?.schemas || {})
+          ...(searchSwagger.components?.schemas || {}),
+          ...(releaseNotificationSwagger.components?.schemas || {})
         },
         responses: {
           ...(baseSwagger.components?.responses || {}),
@@ -102,7 +106,8 @@ const setupSwagger = (app) => {
           ...(ratingReviewSwagger.components?.responses || {}),
           ...(recommendationSwagger.components?.responses || {}),
           ...(movieListSwagger.components?.responses || {}),
-          ...(searchSwagger.components?.responses || {})
+          ...(searchSwagger.components?.responses || {}),
+          ...(releaseNotificationSwagger.components?.responses || {})
         }
       }
     };
