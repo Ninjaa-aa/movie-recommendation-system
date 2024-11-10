@@ -10,12 +10,144 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/MovieInput'
+              type: object
+              required:
+                - title
+                - genre
+                - director
+                - cast
+                - releaseDate
+                - runtime
+                - synopsis
+                - coverPhoto
+                - ageRating
+                - language
+                - status
+              properties:
+                coverPhoto:
+                  type: string
+                  format: binary
+                  description: Movie cover photo (max 5MB, .jpg, .jpeg, or .png)
+                title:
+                  type: string
+                  example: "The Shawshank Redemption"
+                genre:
+                  type: array
+                  items:
+                    type: string
+                    enum: 
+                      - Action
+                      - Adventure
+                      - Animation
+                      - Biography
+                      - Comedy
+                      - Crime
+                      - Documentary
+                      - Drama
+                      - Family
+                      - Fantasy
+                      - Film-Noir
+                      - Game-Show
+                      - History
+                      - Horror
+                      - Music
+                      - Musical
+                      - Mystery
+                      - News
+                      - Reality-TV
+                      - Romance
+                      - Sci-Fi
+                      - Sport
+                      - Talk-Show
+                      - Thriller
+                      - War
+                      - Western
+                  example: ["Drama", "Crime"]
+                director:
+                  type: string
+                  example: "Frank Darabont"
+                cast:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      role:
+                        type: string
+                  example:
+                    - name: "Tim Robbins"
+                      role: "Andy Dufresne"
+                releaseDate:
+                  type: string
+                  format: date
+                  example: "1994-09-23"
+                runtime:
+                  type: number
+                  example: 142
+                synopsis:
+                  type: string
+                  example: "Two imprisoned men bond over a number of years..."
+                language:
+                  type: string
+                  enum:
+                    - English
+                    - Spanish
+                    - French
+                    - German
+                    - Italian
+                    - Japanese
+                    - Korean
+                    - Chinese
+                    - Hindi
+                    - Other
+                  example: "English"
+                status:
+                  type: string
+                  enum:
+                    - Released
+                    - Coming Soon
+                    - In Production
+                  example: "Released"
+                trivia:
+                  type: array
+                  items:
+                    type: string
+                goofs:
+                  type: array
+                  items:
+                    type: string
+                soundtrack:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                      artist:
+                        type: string
+                      duration:
+                        type: string
+                ageRating:
+                  type: string
+                  enum: 
+                    - G
+                    - PG
+                    - PG-13
+                    - R
+                    - NC-17
+                  example: "R"
       responses:
         201:
           description: Movie created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+        400:
+          description: Invalid file format or size
           content:
             application/json:
               schema:
@@ -51,12 +183,84 @@ paths:
           name: genre
           schema:
             type: string
+            enum:
+              - Action
+              - Adventure
+              - Animation
+              - Biography
+              - Comedy
+              - Crime
+              - Documentary
+              - Drama
+              - Family
+              - Fantasy
+              - Film-Noir
+              - Game-Show
+              - History
+              - Horror
+              - Music
+              - Musical
+              - Mystery
+              - News
+              - Reality-TV
+              - Romance
+              - Sci-Fi
+              - Sport
+              - Talk-Show
+              - Thriller
+              - War
+              - Western
           description: Filter by genre
+        - in: query
+          name: language
+          schema:
+            type: string
+            enum:
+              - English
+              - Spanish
+              - French
+              - German
+              - Italian
+              - Japanese
+              - Korean
+              - Chinese
+              - Hindi
+              - Other
+          description: Filter by language
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum:
+              - Released
+              - Coming Soon
+              - In Production
+          description: Filter by status
         - in: query
           name: search
           schema:
             type: string
           description: Search in title and director
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum:
+              - title
+              - releaseDate
+              - runtime
+              - avgRating
+            default: releaseDate
+          description: Sort field
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+          description: Sort order
       responses:
         200:
           description: Movies retrieved successfully
@@ -105,9 +309,92 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/MovieUpdateInput'
+              type: object
+              properties:
+                coverPhoto:
+                  type: string
+                  format: binary
+                  description: Movie cover photo (max 5MB, .jpg, .jpeg, or .png)
+                title:
+                  type: string
+                genre:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - Action
+                      - Adventure
+                      - Animation
+                      - Biography
+                      - Comedy
+                      - Crime
+                      - Documentary
+                      - Drama
+                      - Family
+                      - Fantasy
+                      - Film-Noir
+                      - Game-Show
+                      - History
+                      - Horror
+                      - Music
+                      - Musical
+                      - Mystery
+                      - News
+                      - Reality-TV
+                      - Romance
+                      - Sci-Fi
+                      - Sport
+                      - Talk-Show
+                      - Thriller
+                      - War
+                      - Western
+                director:
+                  type: string
+                cast:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      role:
+                        type: string
+                releaseDate:
+                  type: string
+                  format: date
+                runtime:
+                  type: number
+                synopsis:
+                  type: string
+                language:
+                  type: string
+                  enum:
+                    - English
+                    - Spanish
+                    - French
+                    - German
+                    - Italian
+                    - Japanese
+                    - Korean
+                    - Chinese
+                    - Hindi
+                    - Other
+                status:
+                  type: string
+                  enum:
+                    - Released
+                    - Coming Soon
+                    - In Production
+                ageRating:
+                  type: string
+                  enum:
+                    - G
+                    - PG
+                    - PG-13
+                    - R
+                    - NC-17
       responses:
         200:
           description: Movie updated successfully
@@ -115,6 +402,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MovieResponse'
+        400:
+          description: Invalid file format or size
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
         401:
           $ref: '#/components/responses/UnauthorizedError'
         403:
@@ -162,6 +455,8 @@ components:
         - synopsis
         - coverPhoto
         - ageRating
+        - language
+        - status
       properties:
         title:
           type: string
@@ -170,6 +465,33 @@ components:
           type: array
           items:
             type: string
+            enum:
+              - Action
+              - Adventure
+              - Animation
+              - Biography
+              - Comedy
+              - Crime
+              - Documentary
+              - Drama
+              - Family
+              - Fantasy
+              - Film-Noir
+              - Game-Show
+              - History
+              - Horror
+              - Music
+              - Musical
+              - Mystery
+              - News
+              - Reality-TV
+              - Romance
+              - Sci-Fi
+              - Sport
+              - Talk-Show
+              - Thriller
+              - War
+              - Western
           example: ["Drama", "Crime"]
         director:
           type: string
@@ -198,7 +520,29 @@ components:
           example: "Two imprisoned men bond over a number of years..."
         coverPhoto:
           type: string
-          example: "https://example.com/movie-cover.jpg"
+          format: binary
+          description: Movie cover photo (max 5MB, .jpg, .jpeg, or .png)
+        language:
+          type: string
+          enum:
+            - English
+            - Spanish
+            - French
+            - German
+            - Italian
+            - Japanese
+            - Korean
+            - Chinese
+            - Hindi
+            - Other
+          example: "English"
+        status:
+          type: string
+          enum:
+            - Released
+            - Coming Soon
+            - In Production
+          example: "Released"
         trivia:
           type: array
           items:
@@ -220,7 +564,12 @@ components:
                 type: string
         ageRating:
           type: string
-          enum: [G, PG, PG-13, R, NC-17]
+          enum:
+            - G
+            - PG
+            - PG-13
+            - R
+            - NC-17
           example: "R"
 
     MovieUpdateInput:
@@ -232,6 +581,33 @@ components:
           type: array
           items:
             type: string
+            enum:
+              - Action
+              - Adventure
+              - Animation
+              - Biography
+              - Comedy
+              - Crime
+              - Documentary
+              - Drama
+              - Family
+              - Fantasy
+              - Film-Noir
+              - Game-Show
+              - History
+              - Horror
+              - Music
+              - Musical
+              - Mystery
+              - News
+              - Reality-TV
+              - Romance
+              - Sci-Fi
+              - Sport
+              - Talk-Show
+              - Thriller
+              - War
+              - Western
         director:
           type: string
         cast:
@@ -252,9 +628,35 @@ components:
           type: string
         coverPhoto:
           type: string
+          format: binary
+          description: Movie cover photo (max 5MB, .jpg, .jpeg, or .png)
+        language:
+          type: string
+          enum:
+            - English
+            - Spanish
+            - French
+            - German
+            - Italian
+            - Japanese
+            - Korean
+            - Chinese
+            - Hindi
+            - Other
+        status:
+          type: string
+          enum:
+            - Released
+            - Coming Soon
+            - In Production
         ageRating:
           type: string
-          enum: [G, PG, PG-13, R, NC-17]
+          enum:
+            - G
+            - PG
+            - PG-13
+            - R
+            - NC-17
 
     MovieResponse:
       type: object

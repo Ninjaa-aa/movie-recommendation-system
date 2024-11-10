@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 const { setupSwagger } = require('./swagger');
 const routes = require('../api/v1/routes');
 const errorHandler = require('../middleware/error.middleware');
@@ -16,6 +17,9 @@ const configureApp = (app) => {
     app.use(cors());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+
+    // Serve static files from public directory
+    app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
     // Rate limiting
     const limiter = rateLimit({
@@ -55,7 +59,7 @@ const configureApp = (app) => {
     return app;
   } catch (error) {
     logger.error('Error configuring app:', error);
-    throw error; // Throw error to be handled by caller
+    throw error;
   }
 };
 

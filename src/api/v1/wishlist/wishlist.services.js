@@ -1,71 +1,137 @@
 // src/api/v1/wishlist/wishlist.service.js
+const mongoose = require('mongoose');
 const Wishlist = require('../../../models/wishlist.model');
+const Movie = require('../../../models/movie.model');
 const { ApiError } = require('../../../utils/apiResponse');
 
 class WishlistService {
   async getWishlist(userId) {
-    const wishlist = await Wishlist.findOne({ user: userId });
+    const wishlist = await Wishlist.findOne({ user: userId })
+      .populate('movies.movie', 'title genre releaseDate coverPhoto');
+    
     if (!wishlist) {
-      // Create new wishlist if it doesn't exist
       return await Wishlist.create({ user: userId, movies: [] });
     }
     return wishlist;
   }
 
-  async addToWishlist(userId, { movieId, title, notes, priority }) {
-    let wishlist = await Wishlist.findOne({ user: userId });
-    
-    if (!wishlist) {
-      wishlist = await Wishlist.create({ 
-        user: userId,
-        movies: [{ movieId, title, notes, priority }]
-      });
-    } else {
-      // Check if movie already exists
-      const movieExists = wishlist.movies.some(movie => movie.movieId === movieId);
-      if (movieExists) {
-        throw new ApiError(400, 'Movie already in wishlist');
+  async getAvailableMovies(userId) {
+    // Get user's existing wishlist
+    const wishlist = await Wishlist.findOne({ user: userId });
+    const existingMovieIds = wishlist ? wishlist.movies.map(m => m.movie.toString()) : [];
+
+    // Get all active movies that are not in the wishlist
+    const availableMovies = await Movie.find({
+      _id: { $nin: existingMovieIds },
+      isActive: true
+    }).select('_id title genre releaseDate');
+
+    return availableMovies;
+  }
+
+  async addToWishlist(userId, { movieId, notes, priority }) {
+    try {
+      // Validate movieId format
+      if (!mongoose.Types.ObjectId.isValid(movieId)) {
+        throw new ApiError(400, 'Invalid movie ID format');
       }
 
-      wishlist.movies.push({ movieId, title, notes, priority });
-      await wishlist.save();
-    }
+      // Verify movie exists
+      const movie = await Movie.findOne({ 
+        _id: movieId, 
+        isActive: true 
+      });
 
-    return wishlist;
+      if (!movie) {
+        throw new ApiError(404, 'Movie not found');
+      }
+
+      let wishlist = await Wishlist.findOne({ user: userId });
+      
+      if (!wishlist) {
+        wishlist = await Wishlist.create({ 
+          user: userId,
+          movies: [{ movie: movieId, notes, priority }]
+        });
+      } else {
+        // Check if movie already exists
+        const movieExists = wishlist.movies.some(m => m.movie.toString() === movieId);
+        if (movieExists) {
+          throw new ApiError(400, 'Movie already in wishlist');
+        }
+
+        wishlist.movies.push({ movie: movieId, notes, priority });
+        await wishlist.save();
+      }
+
+      return await wishlist.populate('movies.movie', 'title genre releaseDate coverPhoto');
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      if (error.name === 'CastError') {
+        throw new ApiError(400, 'Invalid movie ID format');
+      }
+      throw error;
+    }
   }
 
   async removeFromWishlist(userId, movieId) {
-    const wishlist = await Wishlist.findOne({ user: userId });
-    if (!wishlist) {
-      throw new ApiError(404, 'Wishlist not found');
-    }
+    try {
+      // Validate movieId format
+      if (!mongoose.Types.ObjectId.isValid(movieId)) {
+        throw new ApiError(400, 'Invalid movie ID format');
+      }
 
-    const movieIndex = wishlist.movies.findIndex(movie => movie.movieId === movieId);
-    if (movieIndex === -1) {
-      throw new ApiError(404, 'Movie not found in wishlist');
-    }
+      const wishlist = await Wishlist.findOne({ user: userId });
+      if (!wishlist) {
+        throw new ApiError(404, 'Wishlist not found');
+      }
 
-    wishlist.movies.splice(movieIndex, 1);
-    await wishlist.save();
-    return wishlist;
+      const movieIndex = wishlist.movies.findIndex(m => m.movie.toString() === movieId);
+      if (movieIndex === -1) {
+        throw new ApiError(404, 'Movie not found in wishlist');
+      }
+
+      wishlist.movies.splice(movieIndex, 1);
+      await wishlist.save();
+      return await wishlist.populate('movies.movie', 'title genre releaseDate coverPhoto');
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      if (error.name === 'CastError') {
+        throw new ApiError(400, 'Invalid movie ID format');
+      }
+      throw error;
+    }
   }
 
   async updateMovieNotes(userId, movieId, { notes, priority }) {
-    const wishlist = await Wishlist.findOne({ user: userId });
-    if (!wishlist) {
-      throw new ApiError(404, 'Wishlist not found');
+    try {
+      // Validate movieId format
+      if (!mongoose.Types.ObjectId.isValid(movieId)) {
+        throw new ApiError(400, 'Invalid movie ID format');
+      }
+
+      const wishlist = await Wishlist.findOne({ user: userId });
+      if (!wishlist) {
+        throw new ApiError(404, 'Wishlist not found');
+      }
+
+      const movie = wishlist.movies.find(m => m.movie.toString() === movieId);
+      if (!movie) {
+        throw new ApiError(404, 'Movie not found in wishlist');
+      }
+
+      if (notes !== undefined) movie.notes = notes;
+      if (priority !== undefined) movie.priority = priority;
+
+      await wishlist.save();
+      return await wishlist.populate('movies.movie', 'title genre releaseDate coverPhoto');
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      if (error.name === 'CastError') {
+        throw new ApiError(400, 'Invalid movie ID format');
+      }
+      throw error;
     }
-
-    const movie = wishlist.movies.find(movie => movie.movieId === movieId);
-    if (!movie) {
-      throw new ApiError(404, 'Movie not found in wishlist');
-    }
-
-    if (notes) movie.notes = notes;
-    if (priority) movie.priority = priority;
-
-    await wishlist.save();
-    return wishlist;
   }
 }
 

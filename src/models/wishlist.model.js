@@ -8,12 +8,9 @@ const wishlistSchema = new mongoose.Schema({
     required: true
   },
   movies: [{
-    movieId: {
-      type: String,
-      required: true
-    },
-    title: {
-      type: String,
+    movie: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Movie',
       required: true
     },
     addedAt: {
@@ -35,6 +32,6 @@ const wishlistSchema = new mongoose.Schema({
 });
 
 // Ensure user can't add the same movie twice
-wishlistSchema.index({ user: 1, 'movies.movieId': 1 }, { unique: true });
+wishlistSchema.index({ user: 1, 'movies.movie': 1 }, { unique: true });
 
 module.exports = mongoose.model('Wishlist', wishlistSchema);

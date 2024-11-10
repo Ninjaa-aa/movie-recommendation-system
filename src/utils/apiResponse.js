@@ -1,4 +1,15 @@
 // src/utils/apiResponse.js
+class ApiError extends Error {
+  constructor(statusCode, message) {
+    super(message);
+    this.statusCode = statusCode;
+    this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
+    this.isOperational = true;
+
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
 class ApiResponse {
   static success(res, { statusCode = 200, message = 'Success', data = null }) {
     return res.status(statusCode).json({
@@ -13,17 +24,6 @@ class ApiResponse {
       success: false,
       message
     });
-  }
-}
-
-class ApiError extends Error {
-  constructor(statusCode, message) {
-    super(message);
-    this.statusCode = statusCode;
-    this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
-    this.isOperational = true;
-
-    Error.captureStackTrace(this, this.constructor);
   }
 }
 

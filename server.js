@@ -4,6 +4,7 @@ const express = require('express');
 const connectDB = require('./src/config/database');
 const configureApp = require('./src/config/app');
 const logger = require('./src/utils/logger');
+const { createUploadDirectories } = require('./src/config/upload');
 
 // Move error handlers to the top level
 process.on('unhandledRejection', (err) => {
@@ -20,6 +21,9 @@ process.on('uncaughtException', (err) => {
 
 const startServer = async () => {
   try {
+    // Create upload directories
+    createUploadDirectories();
+
     // Connect to MongoDB
     await connectDB();
 

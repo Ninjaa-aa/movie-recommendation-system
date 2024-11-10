@@ -1,4 +1,4 @@
-// models/movie.model.js
+// src/models/movie.model.js
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -10,7 +10,14 @@ const movieSchema = new Schema({
   },
   genre: [{ 
     type: String, 
-    required: true 
+    required: true,
+    enum: [
+      'Action', 'Adventure', 'Animation', 'Biography', 'Comedy',
+      'Crime', 'Documentary', 'Drama', 'Family', 'Fantasy',
+      'Film-Noir', 'Game-Show', 'History', 'Horror', 'Music',
+      'Musical', 'Mystery', 'News', 'Reality-TV', 'Romance',
+      'Sci-Fi', 'Sport', 'Talk-Show', 'Thriller', 'War', 'Western'
+    ]
   }],
   director: { 
     type: String, 
@@ -33,8 +40,23 @@ const movieSchema = new Schema({
     required: true 
   },
   coverPhoto: { 
-    type: String, 
-    required: true 
+    fileName: String,
+    filePath: String,
+    fileType: String,
+    fileSize: Number
+  },
+  language: {
+    type: String,
+    required: true,
+    enum: [
+      'English', 'Spanish', 'French', 'German', 'Italian',
+      'Japanese', 'Korean', 'Chinese', 'Hindi', 'Other'
+    ]
+  },
+  status: {
+    type: String,
+    required: true,
+    enum: ['Released', 'Coming Soon', 'In Production']
   },
   avgRating: { 
     type: Number, 

@@ -1,6 +1,6 @@
-// api/v1/movies/movies.service.js
+// src/api/v1/movies/movies.service.js
 const Movie = require('../../../models/movie.model');
-const ApiError = require('../../../utils/ApiError');
+const { ApiError } = require('../../../utils/apiResponse');
 const { getPagination } = require('../../../utils/pagination');
 
 class MovieService {
@@ -41,11 +41,26 @@ class MovieService {
   }
 
   async getMovies(filters) {
-    const { page, limit, genre, search, sortBy, order } = filters;
+    const { 
+      page = 1, 
+      limit = 10, 
+      genre, 
+      language,
+      status,
+      search, 
+      sortBy = 'releaseDate', 
+      sortOrder = 'desc' 
+    } = filters;
+
     const { skip, take } = getPagination(page, limit);
 
+    // Build query
     const query = { isActive: true };
+    
     if (genre) query.genre = genre;
+    if (language) query.language = language;
+    if (status) query.status = status;
+    
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -53,10 +68,9 @@ class MovieService {
       ];
     }
 
+    // Build sort
     const sort = {};
-    if (sortBy) {
-      sort[sortBy] = order === 'desc' ? -1 : 1;
-    }
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
     const [movies, total] = await Promise.all([
       Movie.find(query)
@@ -69,8 +83,8 @@ class MovieService {
     return {
       movies,
       pagination: {
-        page,
-        limit,
+        page: parseInt(page),
+        limit: parseInt(limit),
         total,
         pages: Math.ceil(total / limit)
       }

@@ -1,6 +1,62 @@
-# src/docs/swagger/wishlist.yaml
-openapi: 3.0.0
+# docs/swagger/wishlist.yaml
 paths:
+  /api/v1/wishlist/available-movies:
+    get:
+      tags:
+        - Wishlist
+      summary: Get available movies for dropdown selection
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search movies by title
+      responses:
+        '200':
+          description: Available movies retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Available movies retrieved successfully"
+                  data:
+                    type: object
+                    properties:
+                      movies:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: "507f1f77bcf86cd799439011"
+                            title:
+                              type: string
+                              example: "The Shawshank Redemption"
+                            genre:
+                              type: array
+                              items:
+                                type: string
+                              example: ["Drama"]
+                            releaseDate:
+                              type: string
+                              format: date
+                              example: "1994-09-23"
+                            coverPhoto:
+                              type: object
+                              properties:
+                                filePath:
+                                  type: string
+                                  example: "/uploads/movies/movie-123.jpg"
+
   /api/v1/wishlist:
     get:
       tags:
@@ -30,6 +86,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/WishlistAdd'
+            example:
+              movieId: "507f1f77bcf86cd799439011"
+              priority: "High"
+              notes: "Want to watch this soon!"
       responses:
         '201':
           description: Movie added to wishlist successfully
@@ -38,55 +98,85 @@ paths:
               schema:
                 $ref: '#/components/schemas/WishlistResponse'
         '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-
-  /api/v1/wishlist/{movieId}:
-    delete:
-      tags:
-        - Wishlist
-      summary: Remove movie from wishlist
-      security:
-        - BearerAuth: []
-      parameters:
-        - in: path
-          name: movieId
-          required: true
-          schema:
-            type: string
-          description: ID of the movie to remove
-      responses:
-        '200':
-          description: Movie removed from wishlist successfully
+          description: Movie already in wishlist or invalid input
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Success'
+                $ref: '#/components/schemas/ApiError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
-          $ref: '#/components/responses/NotFoundError'
+          description: Movie not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
 
+  /api/v1/wishlist/movies-in-list:
+    get:
+      tags:
+        - Wishlist
+      summary: Get movies in user's wishlist for dropdown selection
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Movies in wishlist retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Movies in wishlist retrieved successfully"
+                  data:
+                    type: object
+                    properties:
+                      movies:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: "507f1f77bcf86cd799439011"
+                            title:
+                              type: string
+                              example: "The Shawshank Redemption"
+                            priority:
+                              type: string
+                              enum: [Low, Medium, High]
+                            notes:
+                              type: string
+
+  /api/v1/wishlist/{movieId}:
+    parameters:
+      - in: path
+        name: movieId
+        required: true
+        schema:
+          type: string
+        description: ID of the movie to manage
+    
     put:
       tags:
         - Wishlist
       summary: Update movie notes and priority
       security:
         - BearerAuth: []
-      parameters:
-        - in: path
-          name: movieId
-          required: true
-          schema:
-            type: string
-          description: ID of the movie to update
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/WishlistUpdate'
+            example:
+              priority: "Low"
+              notes: "Maybe watch later"
       responses:
         '200':
           description: Movie updated successfully
@@ -99,7 +189,33 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
-          $ref: '#/components/responses/NotFoundError'
+          description: Movie not found in wishlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+    delete:
+      tags:
+        - Wishlist
+      summary: Remove movie from wishlist
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Movie removed from wishlist successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Movie not found in wishlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
 
 components:
   schemas:
@@ -107,52 +223,85 @@ components:
       type: object
       required:
         - movieId
-        - title
       properties:
         movieId:
           type: string
-        title:
-          type: string
+          description: ID of the movie (select from available movies dropdown)
         notes:
           type: string
+          maxLength: 500
         priority:
           type: string
           enum: [Low, Medium, High]
+          default: Medium
 
     WishlistUpdate:
       type: object
       properties:
         notes:
           type: string
+          maxLength: 500
         priority:
           type: string
           enum: [Low, Medium, High]
 
     WishlistResponse:
-      allOf:
-        - $ref: '#/components/schemas/Success'
-        - type: object
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
           properties:
-            data:
+            wishlist:
               type: object
               properties:
-                wishlist:
-                  type: object
-                  properties:
-                    movies:
-                      type: array
-                      items:
+                _id:
+                  type: string
+                user:
+                  type: string
+                movies:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      movie:
                         type: object
                         properties:
-                          movieId:
+                          _id:
                             type: string
                           title:
                             type: string
-                          addedAt:
+                          genre:
+                            type: array
+                            items:
+                              type: string
+                          releaseDate:
                             type: string
-                            format: date-time
-                          notes:
-                            type: string
-                          priority:
-                            type: string
-                            enum: [Low, Medium, High]
+                            format: date
+                          coverPhoto:
+                            type: object
+                            properties:
+                              filePath:
+                                type: string
+                      addedAt:
+                        type: string
+                        format: date-time
+                      notes:
+                        type: string
+                      priority:
+                        type: string
+                        enum: [Low, Medium, High]
+
+    ApiError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Error message here"
