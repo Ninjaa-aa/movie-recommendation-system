@@ -26,15 +26,16 @@ const setupSwagger = (app) => {
     const wishlistSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/wishlist.yaml'));
     const moviesSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/movies.yaml'));
     const ratingReviewSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/rating-review.yaml'));
+    const recommendationSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/recommendation.yaml'));
 
     // Log loaded paths for debugging
-    logger.debug('Loaded paths:', {
-      auth: Object.keys(authSwagger.paths || {}),
-      users: Object.keys(usersSwagger.paths || {}),
-      wishlist: Object.keys(wishlistSwagger.paths || {}),
-      movies: Object.keys(moviesSwagger.paths || {}),
-      ratingReview: Object.keys(ratingReviewSwagger.paths || {})
-    });
+    // logger.debug('Loaded paths:', {
+    //   auth: Object.keys(authSwagger.paths || {}),
+    //   users: Object.keys(usersSwagger.paths || {}),
+    //   wishlist: Object.keys(wishlistSwagger.paths || {}),
+    //   movies: Object.keys(moviesSwagger.paths || {}),
+    //   ratingReview: Object.keys(ratingReviewSwagger.paths || {})
+    // });
 
     // Combine all swagger documents
     const swaggerDocument = {
@@ -56,14 +57,16 @@ const setupSwagger = (app) => {
         { name: 'Wishlist', description: 'Wishlist management endpoints' },
         { name: 'Movies', description: 'Movie management endpoints' },
         { name: 'Ratings', description: 'Movie rating endpoints' },
-        { name: 'Reviews', description: 'Movie review endpoints' }
+        { name: 'Reviews', description: 'Movie review endpoints' },
+        { name: 'Recommendations', description: 'Movie recommendation endpoints' }
       ],
       paths: {
         ...(authSwagger.paths || {}),
         ...(usersSwagger.paths || {}),
         ...(wishlistSwagger.paths || {}),
         ...(moviesSwagger.paths || {}),
-        ...(ratingReviewSwagger.paths || {})
+        ...(ratingReviewSwagger.paths || {}),
+        ...(recommendationSwagger.paths || {})
       },
       components: {
         securitySchemes: {
@@ -79,7 +82,8 @@ const setupSwagger = (app) => {
           ...(usersSwagger.components?.schemas || {}),
           ...(wishlistSwagger.components?.schemas || {}),
           ...(moviesSwagger.components?.schemas || {}),
-          ...(ratingReviewSwagger.components?.schemas || {})
+          ...(ratingReviewSwagger.components?.schemas || {}),
+          ...(recommendationSwagger.components?.schemas || {})
         },
         responses: {
           ...(baseSwagger.components?.responses || {}),
@@ -87,13 +91,14 @@ const setupSwagger = (app) => {
           ...(usersSwagger.components?.responses || {}),
           ...(wishlistSwagger.components?.responses || {}),
           ...(moviesSwagger.components?.responses || {}),
-          ...(ratingReviewSwagger.components?.responses || {})
+          ...(ratingReviewSwagger.components?.responses || {}),
+          ...(recommendationSwagger.components?.responses || {})
         }
       }
     };
 
-    // Log final paths for debugging
-    logger.debug('Final swagger paths:', Object.keys(swaggerDocument.paths));
+    // // Log final paths for debugging
+    // logger.debug('Final swagger paths:', Object.keys(swaggerDocument.paths));
 
     // Disable helmet for swagger path
     app.use('/api-docs', (req, res, next) => {

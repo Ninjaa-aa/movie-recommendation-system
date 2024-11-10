@@ -19,10 +19,10 @@ const configureApp = (app) => {
     app.use(express.urlencoded({ extended: true }));
 
     // Simple request logging middleware
-    app.use((req, res, next) => {
-      logger.debug(`${req.method} ${req.originalUrl}`);
-      next();
-    });
+    // app.use((req, res, next) => {
+    //   logger.debug(`${req.method} ${req.originalUrl}`);
+    //   next();
+    // });
 
     // Setup Swagger
     setupSwagger(app);
