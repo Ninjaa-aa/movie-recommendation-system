@@ -18,12 +18,23 @@ class MovieListController {
   });
 
   getUserLists = catchAsync(async (req, res) => {
-    const result = await this.movieListService.getUserLists(req.user._id, req.query);
-    return ApiResponse.success(res, {
-      message: 'User lists retrieved successfully',
-      data: result
-    });
+  const userId = req.params.userId || req.user.id;
+  const { page, limit } = req.query;
+  const lists = await customListService.getUserLists(userId, page, limit);
+
+  return ApiResponse.success(res, {
+    message: 'User lists retrieved successfully',
+    data: lists
   });
+});
+
+//   getUserLists = catchAsync(async (req, res) => {
+//     const result = await this.movieListService.getUserLists(req.user._id, req.query);
+//     return ApiResponse.success(res, {
+//       message: 'User lists retrieved successfully',
+//       data: result
+//     });
+//   });
 
   getPublicLists = catchAsync(async (req, res) => {
     const result = await this.movieListService.getPublicLists(req.query);

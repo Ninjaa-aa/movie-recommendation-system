@@ -40,6 +40,7 @@ const movieListValidation = {
       })
     }).min(1)
   },
+
   addMovie: {
     body: Joi.object({
       movieId: objectId.required().messages({
@@ -52,19 +53,25 @@ const movieListValidation = {
     })
   },
 
-  getUserLists: {
-    query: Joi.object({
-      page: Joi.number().integer().min(1).default(1).messages({
-        'number.base': 'Page must be a number',
-        'number.min': 'Page must be greater than 0'
-      }),
-      limit: Joi.number().integer().min(1).max(50).default(10).messages({
-        'number.base': 'Limit must be a number',
-        'number.min': 'Limit must be greater than 0',
-        'number.max': 'Limit cannot exceed 50'
-      })
-    })
-  },
+//   getUserLists: {
+//     params: Joi.object({
+//       userId: objectId.required().messages({
+//         'any.invalid': 'Invalid user ID format',
+//         'any.required': 'User ID is required'
+//       })
+//     }),
+//     query: Joi.object({
+//       page: Joi.number().integer().min(1).default(1).messages({
+//         'number.base': 'Page must be a number',
+//         'number.min': 'Page must be greater than 0'
+//       }),
+//       limit: Joi.number().integer().min(1).max(50).default(10).messages({
+//         'number.base': 'Limit must be a number',
+//         'number.min': 'Limit must be greater than 0',
+//         'number.max': 'Limit cannot exceed 50'
+//       })
+//     })
+//   },
 
   getPublicLists: {
     query: Joi.object({
@@ -103,4 +110,4 @@ const movieListValidation = {
   }
 };
 
-module.exports = movieListValidation
+module.exports = movieListValidation;

@@ -38,6 +38,12 @@ router.delete('/:listId',
   movieListController.deleteList
 );
 
+// router.get(
+//   '/user/:userId?',
+//   validate(movieListValidation.getUserLists),
+//   movieListController.getUserLists
+// );
+
 router.post('/:listId/movies',
   validate(movieListValidation.listId, 'params'),
   validate(movieListValidation.addMovie),

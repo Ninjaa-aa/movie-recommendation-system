@@ -171,6 +171,32 @@ class MovieListService {
     }
   }
 
+//   async getUserLists(userId, page = 1, limit = 10) {
+//     const lists = await CustomList.find({
+//       creator: userId,
+//       isActive: true
+//     })
+//     .populate([
+//       { path: 'creator', select: 'name email' },
+//       { path: 'movies', select: 'title genre avgRating' }
+//     ])
+//     .sort({ createdAt: -1 })
+//     .skip((page - 1) * limit)
+//     .limit(limit);
+
+//     const total = await CustomList.countDocuments({
+//       creator: userId,
+//       isActive: true
+//     });
+
+//     return {
+//       results: lists,
+//       total,
+//       page: parseInt(page),
+//       totalPages: Math.ceil(total / limit)
+//     };
+//   }
+
 // Update removeMovieFromList to use the helper methods
   async removeMovieFromList(listId, userId, movieId) {
     try {

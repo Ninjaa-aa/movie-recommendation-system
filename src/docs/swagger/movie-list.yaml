@@ -340,6 +340,35 @@ paths:
         404:
           description: List or movie not found
 
+  # /api/v1/movie-lists/user/{userId}:
+  #   get:
+  #     tags:
+  #       - Movie Lists
+  #     summary: Get lists created by a user
+  #     parameters:
+  #       - name: userId
+  #         in: path
+  #         required: false
+  #         schema:
+  #           type: string
+  #       - name: page
+  #         in: query
+  #         schema:
+  #           type: integer
+  #           default: 1
+  #       - name: limit
+  #         in: query
+  #         schema:
+  #           type: integer
+  #           default: 10
+  #     responses:
+  #       200:
+  #         description: Lists retrieved successfully
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/MovieList'
+
   /api/v1/movie-lists/{listId}/follow:
     post:
       summary: Follow a movie list
