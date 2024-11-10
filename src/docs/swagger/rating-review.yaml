@@ -1,0 +1,403 @@
+# docs/swagger/rating-review.yaml
+openapi: 3.0.0
+info:
+  title: Movie Rating and Review API
+  version: 1.0.0
+  description: API endpoints for movie ratings and reviews
+
+components:
+  schemas:
+    Rating:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: ID of the user who rated
+        movieId:
+          type: string
+          description: ID of the rated movie
+        rating:
+          type: number
+          minimum: 1
+          maximum: 5
+          description: Rating value between 1 and 5
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    Review:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: ID of the user who reviewed
+        movieId:
+          type: string
+          description: ID of the reviewed movie
+        content:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: Review content
+        likes:
+          type: number
+          description: Number of likes on the review
+        isHighlighted:
+          type: boolean
+          description: Whether the review is highlighted
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /api/v1/movies/{movieId}/ratings:
+    post:
+      tags:
+        - Ratings
+      summary: Add a new rating for a movie
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: number
+                  minimum: 1
+                  maximum: 5
+              required:
+                - rating
+            example:
+              rating: 4
+      responses:
+        201:
+          description: Rating created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/Rating'
+        400:
+          description: Invalid rating value or user already rated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: You have already rated this movie
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Authentication required
+    
+    put:
+      tags:
+        - Ratings
+      summary: Update an existing rating
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: number
+                  minimum: 1
+                  maximum: 5
+              required:
+                - rating
+            example:
+              rating: 5
+      responses:
+        200:
+          description: Rating updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/Rating'
+        404:
+          description: Rating not found
+        401:
+          description: Unauthorized
+
+    get:
+      tags:
+        - Ratings
+      summary: Get all ratings for a movie
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: List of ratings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Rating'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      totalPages:
+                        type: integer
+
+  /api/v1/movies/{movieId}/reviews:
+    post:
+      tags:
+        - Reviews
+      summary: Add a new review for a movie
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  minLength: 10
+                  maxLength: 1000
+              required:
+                - content
+            example:
+              content: "This movie was absolutely fantastic! The plot was engaging and the acting was superb."
+      responses:
+        201:
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/Review'
+        400:
+          description: Invalid review content or user already reviewed
+        401:
+          description: Unauthorized
+
+    put:
+      tags:
+        - Reviews
+      summary: Update an existing review
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  minLength: 10
+                  maxLength: 1000
+              required:
+                - content
+            example:
+              content: "Updated review: After watching it again, I noticed even more amazing details!"
+      responses:
+        200:
+          description: Review updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/Review'
+        404:
+          description: Review not found
+        401:
+          description: Unauthorized
+
+    get:
+      tags:
+        - Reviews
+      summary: Get all reviews for a movie
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: highlighted
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        200:
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Review'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      totalPages:
+                        type: integer
+
+  /api/v1/movies/reviews/highlighted:
+    get:
+      tags:
+        - Reviews
+      summary: Get highlighted reviews across all movies
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: List of highlighted reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      results:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Review'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      totalPages:
+                        type: integer

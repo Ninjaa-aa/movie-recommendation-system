@@ -1,55 +1,45 @@
 // src/middleware/validation.middleware.js
+const Joi = require('joi');
 const { ApiResponse } = require('../utils/apiResponse');
+const ApiError = require('../utils/ApiError');
 
+// Generic validation middleware
 exports.validate = (schema) => {
   return (req, res, next) => {
     try {
       // Parse JSON strings in request body
       if (req.body) {
-        // Handle arrays
-        if (req.body.genre) {
-          try {
-            req.body.genre = JSON.parse(req.body.genre);
-          } catch (e) {
-            req.body.genre = [req.body.genre];
-          }
-        }
+        const fieldsToHandle = ['genre', 'cast', 'soundtrack', 'trivia', 'goofs'];
+        
+        fieldsToHandle.forEach(field => {
+          if (req.body[field]) {
+            // Check if the field is already an array or object
+            if (typeof req.body[field] === 'string') {
+              try {
+                // Try to parse if it looks like JSON
+                if (req.body[field].startsWith('[') || req.body[field].startsWith('{')) {
+                  req.body[field] = JSON.parse(req.body[field]);
+                }
+              } catch (e) {
+                // If parsing fails, handle based on field type
+                if (['genre', 'trivia', 'goofs'].includes(field)) {
+                  // For simple arrays, split by comma if it contains commas
+                  if (req.body[field].includes(',')) {
+                    req.body[field] = req.body[field].split(',').map(item => item.trim());
+                  } else {
+                    // Single value becomes an array with one item
+                    req.body[field] = [req.body[field]];
+                  }
+                }
+              }
+            }
 
-        // Handle cast array of objects
-        if (req.body.cast) {
-          try {
-            req.body.cast = JSON.parse(req.body.cast);
-          } catch (e) {
-            // If parsing fails, assume it's already in correct format
-            console.error('Cast parsing error:', e);
+            // Ensure arrays for specific fields
+            if (!Array.isArray(req.body[field]) && ['genre', 'trivia', 'goofs'].includes(field)) {
+              req.body[field] = [req.body[field]];
+            }
           }
-        }
-
-        // Handle soundtrack array of objects
-        if (req.body.soundtrack) {
-          try {
-            req.body.soundtrack = JSON.parse(req.body.soundtrack);
-          } catch (e) {
-            console.error('Soundtrack parsing error:', e);
-          }
-        }
-
-        // Handle simple arrays
-        if (req.body.trivia) {
-          try {
-            req.body.trivia = JSON.parse(req.body.trivia);
-          } catch (e) {
-            req.body.trivia = [req.body.trivia];
-          }
-        }
-
-        if (req.body.goofs) {
-          try {
-            req.body.goofs = JSON.parse(req.body.goofs);
-          } catch (e) {
-            req.body.goofs = [req.body.goofs];
-          }
-        }
+        });
       }
 
       // Validate request parts
@@ -90,4 +80,29 @@ exports.validate = (schema) => {
       });
     }
   };
+};
+
+// Specific validation middlewares for ratings and reviews
+exports.validateRating = (req, res, next) => {
+  const schema = Joi.object({
+    rating: Joi.number().min(1).max(5).required()
+  });
+
+  const { error } = schema.validate(req.body);
+  if (error) {
+    throw new ApiError(400, error.details[0].message);
+  }
+  next();
+};
+
+exports.validateReview = (req, res, next) => {
+  const schema = Joi.object({
+    content: Joi.string().min(10).max(1000).required()
+  });
+
+  const { error } = schema.validate(req.body);
+  if (error) {
+    throw new ApiError(400, error.details[0].message);
+  }
+  next();
 };

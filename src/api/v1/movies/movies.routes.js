@@ -1,46 +1,58 @@
 // src/api/v1/movies/movies.routes.js
 const express = require('express');
+const router = express.Router();
 const { validate } = require('../../../middleware/validation.middleware');
 const { isAuth } = require('../../../middleware/auth.middleware');
 const { authorizeRoles } = require('../../../middleware/role.middleware');
 const { upload } = require('../../../middleware/upload.middleware');
+const { validateRating, validateReview } = require('../../../middleware/validation.middleware');
 const movieValidation = require('./movies.validation');
 const movieController = require('./movies.controller');
+const ratingController = require('../ratings/rating.controller');
+const reviewController = require('../reviews/review.controller');
 
-const router = express.Router();
+// Rating routes
+router.post('/:movieId/ratings', isAuth, validateRating, ratingController.addRating);
+router.put('/:movieId/ratings', isAuth, validateRating, ratingController.updateRating);
+router.get('/:movieId/ratings', ratingController.getMovieRatings);
 
-// Route for creating a movie (admin only, with file upload)
-router
-  .route('/')
-  .post(
-    isAuth,
-    authorizeRoles('admin'),
-    upload.single('coverPhoto'),    // Process file upload for coverPhoto
-    validate(movieValidation.createMovie), // Validate the request payload
-    movieController.createMovie     // Controller to handle movie creation
-  )
-  .get(
-    validate(movieValidation.getMovies),  // Validate query parameters if any
-    movieController.getMovies             // Controller to fetch movies list
-  );
+// Review routes
+router.post('/:movieId/reviews', isAuth, validateReview, reviewController.addReview);
+router.put('/:movieId/reviews', isAuth, validateReview, reviewController.updateReview);
+router.get('/:movieId/reviews', reviewController.getMovieReviews);
 
-// Routes for single movie operations
-router
-  .route('/:movieId')
-  .get(
-    movieController.getMovieById          // Controller to fetch movie by ID
-  )
-  .put(
-    isAuth,
-    authorizeRoles('admin'),
-    upload.single('coverPhoto'),          // Process file upload for coverPhoto
-    validate(movieValidation.updateMovie), // Validate the update payload
-    movieController.updateMovie           // Controller to handle movie update
-  )
-  .delete(
-    isAuth,
-    authorizeRoles('admin'),              // Admin-only access to delete a movie
-    movieController.deleteMovie           // Controller to delete movie
-  );
+// Highlighted reviews route
+router.get('/reviews/highlighted', reviewController.getHighlightedReviews);
+
+// Basic movie routes
+router.post('/', 
+  isAuth, 
+  authorizeRoles('admin'), 
+  upload.single('coverPhoto'),
+  validate(movieValidation.createMovie),
+  movieController.createMovie
+);
+
+router.get('/', 
+  validate(movieValidation.getMovies),
+  movieController.getMovies
+);
+
+// Single movie operations
+router.get('/:movieId', movieController.getMovieById);
+
+router.put('/:movieId',
+  isAuth,
+  authorizeRoles('admin'),
+  upload.single('coverPhoto'),
+  validate(movieValidation.updateMovie),
+  movieController.updateMovie
+);
+
+router.delete('/:movieId',
+  isAuth,
+  authorizeRoles('admin'),
+  movieController.deleteMovie
+);
 
 module.exports = router;

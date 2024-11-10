@@ -18,20 +18,16 @@ const configureApp = (app) => {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
-    // Serve static files from public directory
-    app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
-
-    // Rate limiting
-    const limiter = rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 100
+    // Simple request logging middleware
+    app.use((req, res, next) => {
+      logger.debug(`${req.method} ${req.originalUrl}`);
+      next();
     });
-    app.use('/api', limiter);
 
     // Setup Swagger
     setupSwagger(app);
 
-    // Routes
+    // Mount routes with api/v1 prefix
     app.use('/api/v1', routes);
 
     // Health check endpoint
@@ -47,6 +43,7 @@ const configureApp = (app) => {
 
     // 404 handler
     app.use((req, res) => {
+      logger.debug(`Not Found: ${req.method} ${req.originalUrl}`);
       ApiResponse.error(res, {
         statusCode: 404,
         message: 'Resource not found'

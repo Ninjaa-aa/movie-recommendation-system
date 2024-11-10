@@ -13,9 +13,9 @@ const logger = {
     console.warn(`[WARN] ${new Date().toISOString()} - ${message}`);
   },
   debug: (message, data) => {
-    // console.debug(`[DEBUG] ${new Date().toISOString()} - ${message}`);
+     console.debug(`[DEBUG] ${new Date().toISOString()} - ${message}`);
     if (data) {
-     // console.debug('[DEBUG DATA]:', data);
+      console.debug('[DEBUG DATA]:', data);
     }
   }
 };
