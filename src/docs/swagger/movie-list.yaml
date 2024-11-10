@@ -1,0 +1,393 @@
+
+openapi: 3.0.0
+info:
+  title: Movie Lists API
+  description: API endpoints for managing custom movie lists
+  version: 1.0.0
+
+components:
+  schemas:
+    MovieList:
+      type: object
+      properties:
+        _id:
+          type: string
+          format: objectId
+          example: "507f1f77bcf86cd799439011"
+        user:
+          type: string
+          format: objectId
+          example: "507f1f77bcf86cd799439012"
+        title:
+          type: string
+          example: "Best Sci-Fi Movies"
+        description:
+          type: string
+          example: "My favorite science fiction films of all time"
+        isPublic:
+          type: boolean
+          example: true
+        movies:
+          type: array
+          items:
+            type: object
+            properties:
+              movie:
+                $ref: '#/components/schemas/Movie'
+              addedAt:
+                type: string
+                format: date-time
+              notes:
+                type: string
+        followers:
+          type: array
+          items:
+            type: object
+            properties:
+              user:
+                $ref: '#/components/schemas/User'
+              followedAt:
+                type: string
+                format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["sci-fi", "space"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateListRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          example: "Best Sci-Fi Movies"
+        description:
+          type: string
+          example: "My favorite science fiction films of all time"
+        isPublic:
+          type: boolean
+          default: true
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["sci-fi", "space"]
+
+    UpdateListRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        isPublic:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+
+    AddMovieRequest:
+      type: object
+      required:
+        - movieId
+      properties:
+        movieId:
+          type: string
+          format: objectId
+        notes:
+          type: string
+
+    PaginatedResponse:
+      type: object
+      properties:
+        lists:
+          type: array
+          items:
+            $ref: '#/components/schemas/MovieList'
+        pagination:
+          type: object
+          properties:
+            total:
+              type: integer
+            page:
+              type: integer
+            pages:
+              type: integer
+
+paths:
+  /api/v1/movie-lists:
+    post:
+      summary: Create a new movie list
+      tags:
+        - Movie Lists
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateListRequest'
+      responses:
+        201:
+          description: List created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieList'
+        400:
+          description: Invalid request
+        401:
+          description: Unauthorized
+    
+    get:
+      summary: Get user's movie lists
+      tags:
+        - Movie Lists
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        200:
+          description: Lists retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        401:
+          description: Unauthorized
+
+  /api/v1/movie-lists/public:
+    get:
+      summary: Get public movie lists
+      tags:
+        - Movie Lists
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+        - in: query
+          name: tags
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: false
+      responses:
+        200:
+          description: Public lists retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /api/v1/movie-lists/{listId}:
+    get:
+      summary: Get a specific movie list
+      tags:
+        - Movie Lists
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: List retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieList'
+        404:
+          description: List not found
+
+    put:
+      summary: Update a movie list
+      tags:
+        - Movie Lists
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateListRequest'
+      responses:
+        200:
+          description: List updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieList'
+        404:
+          description: List not found
+
+    delete:
+      summary: Delete a movie list
+      tags:
+        - Movie Lists
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: List deleted successfully
+        404:
+          description: List not found
+
+  /api/v1/movie-lists/{listId}/movies:
+    post:
+      summary: Add a movie to a list
+      tags:
+        - Movie Lists
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMovieRequest'
+      responses:
+        200:
+          description: Movie added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieList'
+        404:
+          description: List or movie not found
+
+  /api/v1/movie-lists/{listId}/movies/{movieId}:
+    delete:
+      summary: Remove a movie from a list
+      tags:
+        - Movie Lists
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: movieId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Movie removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieList'
+        404:
+          description: List or movie not found
+
+  /api/v1/movie-lists/{listId}/follow:
+    post:
+      summary: Follow a movie list
+      tags:
+        - Movie Lists
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: List followed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieList'
+        404:
+          description: List not found
+
+    delete:
+      summary: Unfollow a movie list
+      tags:
+        - Movie Lists
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: List unfollowed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieList'
+        404:
+          description: List not found
+
+  components:
+    securitySchemes:
+      BearerAuth:
+        type: http
+        scheme: bearer
+        bearerFormat: JWT

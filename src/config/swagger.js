@@ -27,7 +27,7 @@ const setupSwagger = (app) => {
     const moviesSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/movies.yaml'));
     const ratingReviewSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/rating-review.yaml'));
     const recommendationSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/recommendation.yaml'));
-
+    const movieListSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/movie-list.yaml'));
     // Log loaded paths for debugging
     // logger.debug('Loaded paths:', {
     //   auth: Object.keys(authSwagger.paths || {}),
@@ -58,7 +58,8 @@ const setupSwagger = (app) => {
         { name: 'Movies', description: 'Movie management endpoints' },
         { name: 'Ratings', description: 'Movie rating endpoints' },
         { name: 'Reviews', description: 'Movie review endpoints' },
-        { name: 'Recommendations', description: 'Movie recommendation endpoints' }
+        { name: 'Recommendations', description: 'Movie recommendation endpoints' },
+        { name: 'Movie Lists', description: 'Movie list management endpoints' }
       ],
       paths: {
         ...(authSwagger.paths || {}),
@@ -66,7 +67,8 @@ const setupSwagger = (app) => {
         ...(wishlistSwagger.paths || {}),
         ...(moviesSwagger.paths || {}),
         ...(ratingReviewSwagger.paths || {}),
-        ...(recommendationSwagger.paths || {})
+        ...(recommendationSwagger.paths || {}),
+        ...(movieListSwagger.paths || {})
       },
       components: {
         securitySchemes: {
@@ -83,7 +85,8 @@ const setupSwagger = (app) => {
           ...(wishlistSwagger.components?.schemas || {}),
           ...(moviesSwagger.components?.schemas || {}),
           ...(ratingReviewSwagger.components?.schemas || {}),
-          ...(recommendationSwagger.components?.schemas || {})
+          ...(recommendationSwagger.components?.schemas || {}),
+          ...(movieListSwagger.components?.schemas || {})
         },
         responses: {
           ...(baseSwagger.components?.responses || {}),
@@ -92,7 +95,8 @@ const setupSwagger = (app) => {
           ...(wishlistSwagger.components?.responses || {}),
           ...(moviesSwagger.components?.responses || {}),
           ...(ratingReviewSwagger.components?.responses || {}),
-          ...(recommendationSwagger.components?.responses || {})
+          ...(recommendationSwagger.components?.responses || {}),
+          ...(movieListSwagger.components?.responses || {})
         }
       }
     };

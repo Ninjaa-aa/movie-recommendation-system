@@ -7,11 +7,13 @@ const userRoutes = require('./users/user.routes');
 const wishlistRoutes = require('./wishlist/wishlist.routes');
 const movieRoutes = require('./movies/movies.routes');
 const recommendationRoutes = require('./recommendations/recommendation.routes');
+const movieListRoutes = require('./movieList/movieList.routes');
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/wishlist', wishlistRoutes);
 router.use('/movies', movieRoutes);
 router.use('/recommendations', recommendationRoutes);
+router.use('/movie-lists', movieListRoutes);
 
 module.exports = router;
