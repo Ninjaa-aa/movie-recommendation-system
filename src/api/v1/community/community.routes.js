@@ -1,7 +1,6 @@
-// src/api/v1/community/community.routes.js
 const express = require('express');
 const { validate } = require('../../../middleware/validation.middleware');
-const {isAuth} = require('../../../middleware/auth.middleware');
+const { isAuth } = require('../../../middleware/auth.middleware');
 const communityValidation = require('./community.validation');
 const communityController = require('./community.controller');
 const { checkForumModerator } = require('../../../middleware/forumModerator.middleware');
@@ -9,8 +8,7 @@ const { checkForumModerator } = require('../../../middleware/forumModerator.midd
 const router = express.Router();
 
 // Forum Routes
-router
-  .route('/forums')
+router.route('/forums')
   .post(
     isAuth,
     validate(communityValidation.createForum),
@@ -21,28 +19,26 @@ router
     communityController.listForums
   );
 
-router
-  .route('/forums/:forumId')
+router.route('/forums/:forumId')
   .get(
     validate(communityValidation.getForum),
     communityController.getForum
   )
   .patch(
     isAuth,
-    validate(communityValidation.updateForum),
     checkForumModerator,
+    validate(communityValidation.updateForum),
     communityController.updateForum
   )
   .delete(
     isAuth,
-    validate(communityValidation.deleteForum),
     checkForumModerator,
+    validate(communityValidation.deleteForum),
     communityController.deleteForum
   );
 
 // Topic Routes
-router
-  .route('/forums/:forumId/topics')
+router.route('/forums/:forumId/topics')
   .post(
     isAuth,
     validate(communityValidation.createTopic),
@@ -53,8 +49,7 @@ router
     communityController.listTopics
   );
 
-router
-  .route('/topics/:topicId')
+router.route('/topics/:topicId')
   .patch(
     isAuth,
     validate(communityValidation.updateTopic),
@@ -62,8 +57,7 @@ router
   );
 
 // Post Routes
-router
-  .route('/topics/:topicId/posts')
+router.route('/topics/:topicId/posts')
   .post(
     isAuth,
     validate(communityValidation.createPost),
@@ -74,16 +68,14 @@ router
     communityController.listPosts
   );
 
-router
-  .route('/posts/:postId')
+router.route('/posts/:postId')
   .patch(
     isAuth,
     validate(communityValidation.updatePost),
     communityController.updatePost
   );
 
-router
-  .route('/posts/:postId/like')
+router.route('/posts/:postId/like')
   .post(
     isAuth,
     communityController.togglePostLike

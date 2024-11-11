@@ -1,7 +1,17 @@
-// src/api/v1/community/post.service.js
+const Topic = require('../../../models/topic.model');
+const Forum = require('../../../models/forum.model');
+const Post = require('../../../models/post.model');
+const logger = require('../../../utils/logger');
+const ApiError = require('../../../utils/ApiError');
+
 class PostService {
   async createPost(topicId, userId, postData) {
     try {
+      // Validate topic ID format
+      if (!topicId.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new ApiError(400, 'Invalid topic ID format');
+      }
+
       const topic = await Topic.findOne({ _id: topicId, isActive: true });
       if (!topic) {
         throw new ApiError(404, 'Topic not found');
@@ -11,6 +21,7 @@ class PostService {
         throw new ApiError(403, 'This topic is locked');
       }
 
+      // Validate parent post if provided
       if (postData.parentPost) {
         const parentPost = await Post.findOne({ 
           _id: postData.parentPost,
@@ -23,33 +34,49 @@ class PostService {
       }
 
       const post = await Post.create({
-        ...postData,
+        content: postData.content,
         topic: topicId,
-        author: userId
+        author: userId,
+        parentPost: postData.parentPost,
+        mentions: [],
+        likes: [],
+        isActive: true,
+        isEdited: false,
+        editHistory: []
       });
 
       // Update topic statistics
-      topic.totalReplies += 1;
+      topic.replies = (topic.replies || 0) + 1;
       topic.lastReply = post._id;
+      topic.lastReplyAt = new Date();
       await topic.save();
 
       // Update forum statistics
       const forum = await Forum.findById(topic.forum);
-      forum.totalPosts += 1;
-      forum.lastPost = post._id;
-      await forum.save();
-
-      // Process mentions and send notifications
-      if (postData.mentions?.length) {
-        // Implement notification sending logic here
+      if (forum) {
+        forum.totalPosts = (forum.totalPosts || 0) + 1;
+        forum.lastPost = post._id;
+        await forum.save();
       }
 
       return await post.populate([
-        { path: 'author', select: 'name avatar' },
-        { path: 'mentions', select: 'name avatar' },
+        { 
+          path: 'author',
+          select: 'username profilePicture email',
+          model: 'User'
+        },
+        { 
+          path: 'mentions',
+          select: 'username profilePicture',
+          model: 'User'
+        },
         { 
           path: 'parentPost',
-          populate: { path: 'author', select: 'name avatar' }
+          populate: {
+            path: 'author',
+            select: 'username profilePicture',
+            model: 'User'
+          }
         }
       ]);
     } catch (error) {
