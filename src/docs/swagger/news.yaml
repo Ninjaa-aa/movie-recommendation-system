@@ -1,0 +1,386 @@
+# docs/swagger/news.yaml
+openapi: 3.0.0
+info:
+  title: News API
+  version: 1.0.0
+  description: API endpoints for news articles and industry updates
+
+paths:
+  /api/v1/news:
+    get:
+      tags:
+        - News
+      summary: Get news articles
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [movie-news, actor-news, industry-updates, upcoming-projects, box-office]
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: searchTerm
+          in: query
+          schema:
+            type: string
+        - name: highlighted
+          in: query
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: News articles retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsListResponse'
+    
+    post:
+      tags:
+        - News
+      summary: Create a news article
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                summary:
+                  type: string
+                category:
+                  type: string
+                  enum: [movie-news, actor-news, industry-updates, upcoming-projects, box-office]
+                tags:
+                  type: string
+                  description: "JSON string array e.g. [\"tag1\", \"tag2\"]"
+                  example: "[\"marvel\", \"superhero\", \"upcoming\"]"
+                relatedMovies:
+                  type: string
+                  description: "JSON string array e.g. [\"movieId1\", \"movieId2\"]"
+                  example: "[\"6571234567890\", \"6571234567891\"]"
+                relatedActors:
+                  type: string
+                  description: "JSON string array of objects e.g. [{\"name\":\"Actor Name\",\"role\":\"Actor\"}]"
+                  example: "[{\"name\":\"John Doe\",\"role\":\"Actor\"},{\"name\":\"Jane Smith\",\"role\":\"Director\"}]"
+                coverImage:
+                  type: string
+                  format: binary
+                source:
+                  type: string
+                  description: "JSON object with name and url e.g. {\"name\":\"Source Name\",\"url\":\"http://example.com\"}"
+                  example: "{\"name\":\"Official Blog\",\"url\":\"https://example.com/news\"}"
+                isHighlighted:
+                  type: boolean
+              required:
+                - title
+                - content
+                - summary
+                - category
+      responses:
+        201:
+          description: News article created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsResponse'
+              example:
+                success: true
+                message: "News article created successfully"
+                data:
+                  _id: "657123456789"
+                  title: "New Marvel Movie Announced"
+                  slug: "new-marvel-movie-announced"
+                  content: "Detailed article content..."
+                  summary: "Marvel Studios announces new superhero film"
+                  category: "movie-news"
+                  tags: ["marvel", "superhero", "upcoming"]
+                  relatedMovies: ["657123456789", "657123456790"]
+                  relatedActors: [
+                    { "name": "John Doe", "role": "Actor" }
+                  ]
+                  viewCount: 0
+                  isPublished: true
+                  publishDate: "2024-11-10T23:00:00.000Z"
+                  isHighlighted: false
+                  source: {
+                    "name": "Official Blog",
+                    "url": "https://example.com/news"
+                  }
+        400:
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Validation error message"
+              examples:
+                arrayValidation:
+                  value:
+                    success: false
+                    message: "\"tags\" must be an array"
+                jsonParsing:
+                  value:
+                    success: false
+                    message: "Invalid JSON format for tags"
+
+                    
+  /api/v1/news/trending:
+    get:
+      tags:
+        - News
+      summary: Get trending news articles
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        200:
+          description: Trending news retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsListResponse'
+
+  /api/v1/news/id/{newsId}:
+    get:
+      tags:
+        - News
+      summary: Get news article by ID
+      parameters:
+        - name: newsId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: News article retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsResponse'
+
+  /api/v1/news/slug/{slug}:
+    get:
+      tags:
+        - News
+      summary: Get news article by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: News article retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsResponse'
+
+  /api/v1/news/{newsId}:
+    put:
+      tags:
+        - News
+      summary: Update a news article
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: newsId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                summary:
+                  type: string
+                category:
+                  type: string
+                coverImage:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: News article updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsResponse'
+
+    delete:
+      tags:
+        - News
+      summary: Delete a news article
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: newsId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: News article deleted successfully
+
+  /api/v1/news/{newsId}/related:
+    get:
+      tags:
+        - News
+      summary: Get related news articles
+      parameters:
+        - name: newsId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        200:
+          description: Related news articles retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsListResponse'
+
+components:
+  schemas:
+    News:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+        content:
+          type: string
+        summary:
+          type: string
+        category:
+          type: string
+        coverImage:
+          type: object
+          properties:
+            fileName:
+              type: string
+            filePath:
+              type: string
+            fileType:
+              type: string
+            fileSize:
+              type: number
+        author:
+          $ref: '#/components/schemas/User'
+        tags:
+          type: array
+          items:
+            type: string
+        relatedMovies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Movie'
+        relatedActors:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              role:
+                type: string
+        viewCount:
+          type: number
+        isPublished:
+          type: boolean
+        publishDate:
+          type: string
+          format: date-time
+        isHighlighted:
+          type: boolean
+        source:
+          type: object
+          properties:
+            name:
+              type: string
+            url:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    NewsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/News'
+
+    NewsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/News'
+            total:
+              type: integer
+            page:
+              type: integer
+            totalPages:
+              type: integer

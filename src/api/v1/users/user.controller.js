@@ -9,6 +9,11 @@ class UserController {
 
   getProfile = async (req, res, next) => {
     try {
+      // Add null check for req.user
+      if (!req.user?._id) {
+        return ApiResponse.error(res, 401, 'User not authenticated');
+      }
+
       const user = await this.userService.getProfile(req.user._id);
       return ApiResponse.success(res, {
         message: 'Profile retrieved successfully',
@@ -21,6 +26,11 @@ class UserController {
 
   updateProfile = async (req, res, next) => {
     try {
+      // Add null check for req.user
+      if (!req.user?._id) {
+        return ApiResponse.error(res, 401, 'User not authenticated');
+      }
+
       const updatedUser = await this.userService.updateProfile(req.user._id, req.body);
       return ApiResponse.success(res, {
         message: 'Profile updated successfully',
@@ -33,6 +43,11 @@ class UserController {
 
   updatePreferences = async (req, res, next) => {
     try {
+      // Add null check for req.user
+      if (!req.user?._id) {
+        return ApiResponse.error(res, 401, 'User not authenticated');
+      }
+
       const updatedUser = await this.userService.updatePreferences(req.user._id, req.body);
       return ApiResponse.success(res, {
         message: 'Preferences updated successfully',

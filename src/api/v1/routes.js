@@ -11,7 +11,7 @@ const movieListRoutes = require('./movieList/movieList.routes');
 const searchRoutes = require('./search/search.routes');
 const releaseRoutes = require('./release/release.routes');
 const notificationRoutes = require('./notification/notification.routes');
-
+const newsRoutes = require('./news/news.routes');
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -22,5 +22,6 @@ router.use('/movie-lists', movieListRoutes);
 router.use('/search', searchRoutes);
 router.use('/releases', releaseRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/news', newsRoutes);
 
 module.exports = router;

@@ -72,11 +72,6 @@ const movieSchema = new Schema({
     ],
     index: true
   },
-  country: {
-    type: String,
-    required: true,
-    index: true
-  },
   status: {
     type: String,
     required: true,
@@ -160,7 +155,6 @@ movieSchema.index({ isActive: 1, releaseYear: -1 });
 movieSchema.index({ isActive: 1, viewCount: -1 });
 movieSchema.index({ isActive: 1, genre: 1 });
 movieSchema.index({ isActive: 1, language: 1 });
-movieSchema.index({ isActive: 1, country: 1 });
 movieSchema.index({ isActive: 1, decade: 1 });
 movieSchema.index({ isActive: 1, lastViewedAt: -1 });
 movieSchema.index({ isActive: 1, 'awards.year': -1 });
