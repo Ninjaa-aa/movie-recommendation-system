@@ -1,4 +1,3 @@
-// src/api/v1/movieList/movieList.validation.js
 const Joi = require('joi');
 const mongoose = require('mongoose');
 
@@ -42,6 +41,12 @@ const movieListValidation = {
   },
 
   addMovie: {
+    params: Joi.object({
+      listId: objectId.required().messages({
+        'any.invalid': 'Invalid list ID format',
+        'any.required': 'List ID is required'
+      })
+    }),
     body: Joi.object({
       movieId: objectId.required().messages({
         'any.invalid': 'Invalid movie ID format',
@@ -53,25 +58,32 @@ const movieListValidation = {
     })
   },
 
-//   getUserLists: {
-//     params: Joi.object({
-//       userId: objectId.required().messages({
-//         'any.invalid': 'Invalid user ID format',
-//         'any.required': 'User ID is required'
-//       })
-//     }),
-//     query: Joi.object({
-//       page: Joi.number().integer().min(1).default(1).messages({
-//         'number.base': 'Page must be a number',
-//         'number.min': 'Page must be greater than 0'
-//       }),
-//       limit: Joi.number().integer().min(1).max(50).default(10).messages({
-//         'number.base': 'Limit must be a number',
-//         'number.min': 'Limit must be greater than 0',
-//         'number.max': 'Limit cannot exceed 50'
-//       })
-//     })
-//   },
+  removeMovie: {
+    params: Joi.object({
+      listId: objectId.required().messages({
+        'any.invalid': 'Invalid list ID format',
+        'any.required': 'List ID is required'
+      }),
+      movieId: objectId.required().messages({
+        'any.invalid': 'Invalid movie ID format',
+        'any.required': 'Movie ID is required'
+      })
+    })
+  },
+
+  getUserLists: {
+    query: Joi.object({
+      page: Joi.number().integer().min(1).default(1).messages({
+        'number.base': 'Page must be a number',
+        'number.min': 'Page must be greater than 0'
+      }),
+      limit: Joi.number().integer().min(1).max(50).default(10).messages({
+        'number.base': 'Limit must be a number',
+        'number.min': 'Limit must be greater than 0',
+        'number.max': 'Limit cannot exceed 50'
+      })
+    })
+  },
 
   getPublicLists: {
     query: Joi.object({
@@ -96,15 +108,6 @@ const movieListValidation = {
       listId: objectId.required().messages({
         'any.invalid': 'Invalid list ID format',
         'any.required': 'List ID is required'
-      })
-    })
-  },
-
-  movieId: {
-    params: Joi.object({
-      movieId: objectId.required().messages({
-        'any.invalid': 'Invalid movie ID format',
-        'any.required': 'Movie ID is required'
       })
     })
   }

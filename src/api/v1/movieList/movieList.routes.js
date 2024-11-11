@@ -1,68 +1,90 @@
-// src/api/v1/movieList/movieList.routes.js
 const express = require('express');
 const router = express.Router();
-const movieListController = require('./movieList.controller');
-const { verifyToken } = require('../../../config/jwt');
+const { isAuth } = require('../../../middleware/auth.middleware');
 const { validate } = require('../../../middleware/validation.middleware');
 const movieListValidation = require('./movieList.validation');
+const movieListController = require('./movieList.controller');
 
-// Public routes
-router.get('/public', validate(movieListValidation.getPublicLists, 'query'), movieListController.getPublicLists);
+// Get user's lists
+router.get(
+  '/',
+  isAuth,
+  validate({
+    query: movieListValidation.getUserLists.query
+  }),
+  movieListController.getUserLists
+);
 
-// Protected routes
-router.use(verifyToken);
-
-router.post('/', 
+// Create new list
+router.post(
+  '/',
+  isAuth,
   validate(movieListValidation.createList),
   movieListController.createList
 );
 
-router.get('/', 
-  validate(movieListValidation.getUserLists, 'query'),
-  movieListController.getUserLists
+// Get public lists
+router.get(
+  '/public',
+  validate(movieListValidation.getPublicLists),
+  movieListController.getPublicLists
 );
 
-router.get('/:listId',
-  validate(movieListValidation.listId, 'params'),
+// Get specific list
+router.get(
+  '/:listId',
+  validate(movieListValidation.listId),
   movieListController.getListById
 );
 
-router.put('/:listId',
-  validate(movieListValidation.listId, 'params'),
-  validate(movieListValidation.updateList),
+// Update list
+router.put(
+  '/:listId',
+  isAuth,
+  validate({
+    params: movieListValidation.listId.params,
+    body: movieListValidation.updateList.body
+  }),
   movieListController.updateList
 );
 
-router.delete('/:listId',
-  validate(movieListValidation.listId, 'params'),
+// Delete list
+router.delete(
+  '/:listId',
+  isAuth,
+  validate(movieListValidation.listId),
   movieListController.deleteList
 );
 
-// router.get(
-//   '/user/:userId?',
-//   validate(movieListValidation.getUserLists),
-//   movieListController.getUserLists
-// );
-
-router.post('/:listId/movies',
-  validate(movieListValidation.listId, 'params'),
+// Add movie to list
+router.post(
+  '/:listId/movies',
+  isAuth,
   validate(movieListValidation.addMovie),
   movieListController.addMovieToList
 );
 
-router.delete('/:listId/movies/:movieId',
-  validate(movieListValidation.listId, 'params'),
-  validate(movieListValidation.movieId, 'params'),
+// Remove movie from list
+router.delete(
+  '/:listId/movies/:movieId',
+  isAuth,
+  validate(movieListValidation.removeMovie),
   movieListController.removeMovieFromList
 );
 
-router.post('/:listId/follow',
-  validate(movieListValidation.listId, 'params'),
+// Follow list
+router.post(
+  '/:listId/follow',
+  isAuth,
+  validate(movieListValidation.listId),
   movieListController.followList
 );
 
-router.delete('/:listId/follow',
-  validate(movieListValidation.listId, 'params'),
+// Unfollow list
+router.delete(
+  '/:listId/follow',
+  isAuth,
+  validate(movieListValidation.listId),
   movieListController.unfollowList
 );
 

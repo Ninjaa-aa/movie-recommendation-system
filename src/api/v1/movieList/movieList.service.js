@@ -1,8 +1,7 @@
-// src/api/v1/movieList/movieList.service.js
 const mongoose = require('mongoose');
 const MovieList = require('../../../models/movieList.model');
 const Movie = require('../../../models/movie.model');
-const { ApiError } = require('../../../utils/apiResponse');
+const ApiError = require('../../../utils/ApiError'); // Fixed import
 
 class MovieListService {
   async createList(userId, { title, description, isPublic, tags }) {
@@ -69,42 +68,36 @@ class MovieListService {
 
   async getListById(listId, userId) {
     try {
-      // Validate listId format
       if (!mongoose.Types.ObjectId.isValid(listId)) {
         throw new ApiError(400, 'Invalid list ID format');
       }
 
-      // Find the list and populate all necessary fields
       const list = await MovieList.findById(listId)
         .populate({
           path: 'user',
-          select: 'username email'  // Add any other user fields you want to include
+          select: 'username email'
         })
         .populate({
           path: 'movies.movie',
           select: 'title genre releaseDate coverPhoto',
-          match: { isActive: true }  // Only include active movies
+          match: { isActive: true }
         })
         .populate({
           path: 'followers.user',
           select: 'username'
         })
-        .lean();  // Convert to plain JavaScript object for better performance
+        .lean();
 
-      // Check if list exists
       if (!list) {
         throw new ApiError(404, 'List not found');
       }
 
-      // Check access permissions for private lists
       if (!list.isPublic && (!userId || list.user._id.toString() !== userId.toString())) {
         throw new ApiError(403, 'Access denied to private list');
       }
 
-      // Filter out any null entries from populated movies (in case some movies were deactivated)
       list.movies = list.movies.filter(movie => movie.movie != null);
 
-      // Add additional fields that might be useful for the client
       return {
         ...list,
         isOwner: userId ? list.user._id.toString() === userId.toString() : false,
@@ -113,21 +106,15 @@ class MovieListService {
         isFollowing: userId ? list.followers.some(f => f.user._id.toString() === userId.toString()) : false
       };
     } catch (error) {
-      // Handle mongoose CastError (invalid ObjectId)
       if (error.name === 'CastError') {
         throw new ApiError(400, 'Invalid list ID format');
       }
-      // Re-throw ApiError instances
-      if (error instanceof ApiError) {
-        throw error;
-      }
-      // Log unexpected errors and throw a generic error
+      if (error instanceof ApiError) throw error;
       console.error('GetListById Error:', error);
       throw new ApiError(500, 'Error retrieving movie list');
     }
   }
 
-  // Add a helper method to check list ownership
   async checkListOwnership(listId, userId) {
     const list = await MovieList.findOne({ _id: listId, user: userId });
     if (!list) {
@@ -136,7 +123,6 @@ class MovieListService {
     return list;
   }
 
-  // Add this helper method for movie validation
   async validateMovie(movieId) {
     if (!mongoose.Types.ObjectId.isValid(movieId)) {
       throw new ApiError(400, 'Invalid movie ID format');
@@ -149,7 +135,6 @@ class MovieListService {
     return movie;
   }
 
-  // Update addMovieToList to use the helper methods
   async addMovieToList(listId, userId, { movieId, notes }) {
     try {
       const list = await this.checkListOwnership(listId, userId);
@@ -171,33 +156,6 @@ class MovieListService {
     }
   }
 
-//   async getUserLists(userId, page = 1, limit = 10) {
-//     const lists = await CustomList.find({
-//       creator: userId,
-//       isActive: true
-//     })
-//     .populate([
-//       { path: 'creator', select: 'name email' },
-//       { path: 'movies', select: 'title genre avgRating' }
-//     ])
-//     .sort({ createdAt: -1 })
-//     .skip((page - 1) * limit)
-//     .limit(limit);
-
-//     const total = await CustomList.countDocuments({
-//       creator: userId,
-//       isActive: true
-//     });
-
-//     return {
-//       results: lists,
-//       total,
-//       page: parseInt(page),
-//       totalPages: Math.ceil(total / limit)
-//     };
-//   }
-
-// Update removeMovieFromList to use the helper methods
   async removeMovieFromList(listId, userId, movieId) {
     try {
       const list = await this.checkListOwnership(listId, userId);

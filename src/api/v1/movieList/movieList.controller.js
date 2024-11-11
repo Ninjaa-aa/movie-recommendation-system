@@ -1,7 +1,7 @@
-// src/api/v1/movieList/movieList.controller.js
 const MovieListService = require('./movieList.service');
 const { ApiResponse } = require('../../../utils/apiResponse');
 const { catchAsync } = require('../../../utils/catchAsync');
+const ApiError = require('../../../utils/ApiError');
 
 class MovieListController {
   constructor() {
@@ -9,7 +9,11 @@ class MovieListController {
   }
 
   createList = catchAsync(async (req, res) => {
-    const list = await this.movieListService.createList(req.user._id, req.body);
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, 'Authentication required');
+    }
+
+    const list = await this.movieListService.createList(req.user.id, req.body);
     return ApiResponse.success(res, {
       statusCode: 201,
       message: 'Movie list created successfully',
@@ -18,23 +22,22 @@ class MovieListController {
   });
 
   getUserLists = catchAsync(async (req, res) => {
-  const userId = req.params.userId || req.user.id;
-  const { page, limit } = req.query;
-  const lists = await customListService.getUserLists(userId, page, limit);
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, 'Authentication required');
+    }
 
-  return ApiResponse.success(res, {
-    message: 'User lists retrieved successfully',
-    data: lists
+    const { page = 1, limit = 10 } = req.query;
+    
+    const result = await this.movieListService.getUserLists(req.user.id, {
+      page: parseInt(page),
+      limit: parseInt(limit)
+    });
+
+    return ApiResponse.success(res, {
+      message: 'User lists retrieved successfully',
+      data: result
+    });
   });
-});
-
-//   getUserLists = catchAsync(async (req, res) => {
-//     const result = await this.movieListService.getUserLists(req.user._id, req.query);
-//     return ApiResponse.success(res, {
-//       message: 'User lists retrieved successfully',
-//       data: result
-//     });
-//   });
 
   getPublicLists = catchAsync(async (req, res) => {
     const result = await this.movieListService.getPublicLists(req.query);
@@ -45,7 +48,8 @@ class MovieListController {
   });
 
   getListById = catchAsync(async (req, res) => {
-    const list = await this.movieListService.getListById(req.params.listId, req.user._id);
+    const userId = req.user?.id || null; // Make userId optional for public lists
+    const list = await this.movieListService.getListById(req.params.listId, userId);
     return ApiResponse.success(res, {
       message: 'List retrieved successfully',
       data: { list }
@@ -53,9 +57,13 @@ class MovieListController {
   });
 
   addMovieToList = catchAsync(async (req, res) => {
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, 'Authentication required');
+    }
+
     const list = await this.movieListService.addMovieToList(
       req.params.listId,
-      req.user._id,
+      req.user.id,
       req.body
     );
     return ApiResponse.success(res, {
@@ -65,9 +73,13 @@ class MovieListController {
   });
 
   removeMovieFromList = catchAsync(async (req, res) => {
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, 'Authentication required');
+    }
+
     const list = await this.movieListService.removeMovieFromList(
       req.params.listId,
-      req.user._id,
+      req.user.id,
       req.params.movieId
     );
     return ApiResponse.success(res, {
@@ -77,7 +89,11 @@ class MovieListController {
   });
 
   followList = catchAsync(async (req, res) => {
-    const list = await this.movieListService.followList(req.params.listId, req.user._id);
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, 'Authentication required');
+    }
+
+    const list = await this.movieListService.followList(req.params.listId, req.user.id);
     return ApiResponse.success(res, {
       message: 'List followed successfully',
       data: { list }
@@ -85,7 +101,11 @@ class MovieListController {
   });
 
   unfollowList = catchAsync(async (req, res) => {
-    const list = await this.movieListService.unfollowList(req.params.listId, req.user._id);
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, 'Authentication required');
+    }
+
+    const list = await this.movieListService.unfollowList(req.params.listId, req.user.id);
     return ApiResponse.success(res, {
       message: 'List unfollowed successfully',
       data: { list }
@@ -93,9 +113,13 @@ class MovieListController {
   });
 
   updateList = catchAsync(async (req, res) => {
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, 'Authentication required');
+    }
+
     const list = await this.movieListService.updateList(
       req.params.listId,
-      req.user._id,
+      req.user.id,
       req.body
     );
     return ApiResponse.success(res, {
@@ -105,7 +129,11 @@ class MovieListController {
   });
 
   deleteList = catchAsync(async (req, res) => {
-    await this.movieListService.deleteList(req.params.listId, req.user._id);
+    if (!req.user || !req.user.id) {
+      throw new ApiError(401, 'Authentication required');
+    }
+
+    await this.movieListService.deleteList(req.params.listId, req.user.id);
     return ApiResponse.success(res, {
       message: 'List deleted successfully'
     });

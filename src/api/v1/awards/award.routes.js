@@ -23,12 +23,12 @@ router.get('/search',
   awardController.searchAwards
 );
 
-router.get('/movie/:movieId', 
+router.get('/movies/:movieId', 
   validate(awardValidation.getMovieAwards), 
   awardController.getMovieAwards
 );
 
-router.get('/movie/:movieId/major-stats', 
+router.get('/movies/:movieId/major-stats', 
   validate(awardValidation.getMovieAwards), 
   awardController.getMajorAwardStats
 );
