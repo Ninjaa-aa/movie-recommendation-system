@@ -14,8 +14,9 @@ const reviewSchema = new mongoose.Schema({
   content: {
     type: String,
     required: true,
-    minLength: 10,
-    maxLength: 1000
+    trim: true,
+    minlength: 1,
+    maxlength: 1000
   },
   likes: {
     type: Number,
@@ -33,10 +34,19 @@ const reviewSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
-// Compound index to ensure one review per user per movie
+// Create a compound index for userId and movieId to ensure unique reviews
 reviewSchema.index({ userId: 1, movieId: 1 }, { unique: true });
 
+// Create indexes for common queries
+reviewSchema.index({ movieId: 1, createdAt: -1 });
+reviewSchema.index({ isHighlighted: 1, likes: -1, createdAt: -1 });
+
 const Review = mongoose.model('Review', reviewSchema);
+
 module.exports = Review;

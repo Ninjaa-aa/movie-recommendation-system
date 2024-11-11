@@ -34,6 +34,7 @@ const setupSwagger = (app) => {
     const boxOfficeSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/box-office.yaml'));
     const awardSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/award.yaml'));
     const communitySwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/community.yaml'));
+    const adminSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/admin.yaml'));
 
     // Combine all swagger documents
     const swaggerDocument = {
@@ -63,7 +64,8 @@ const setupSwagger = (app) => {
         { name: 'News', description: 'News article endpoints' },
         { name: 'Box Office', description: 'Box office endpoints' },
         { name: 'Awards', description: 'Award endpoints' },
-        { name: 'Community', description: 'Community endpoints' }
+        { name: 'Community', description: 'Community endpoints' },
+        { name: 'Admin', description: 'Admin endpoints' }
       ],
       paths: {
         ...(authSwagger.paths || {}),
@@ -78,7 +80,8 @@ const setupSwagger = (app) => {
         ...(newsSwagger.paths || {}),
         ...(boxOfficeSwagger.paths || {}),
         ...(awardSwagger.paths || {}),
-        ...(communitySwagger.paths || {})
+        ...(communitySwagger.paths || {}),
+        ...(adminSwagger.paths || {})
       },
       components: {
         securitySchemes: {
@@ -102,7 +105,8 @@ const setupSwagger = (app) => {
           ...(newsSwagger.components?.schemas || {}),
           ...(boxOfficeSwagger.components?.schemas || {}),
           ...(awardSwagger.components?.schemas || {}),
-          ...(communitySwagger.components?.schemas || {})
+          ...(communitySwagger.components?.schemas || {}),
+          ...(adminSwagger.components?.schemas || {})
         },
         responses: {
           ...(baseSwagger.components?.responses || {}),
@@ -118,7 +122,8 @@ const setupSwagger = (app) => {
           ...(newsSwagger.components?.responses || {}),
           ...(boxOfficeSwagger.components?.responses || {}),
           ...(awardSwagger.components?.responses || {}),
-          ...(communitySwagger.components?.responses || {})
+          ...(communitySwagger.components?.responses || {}),
+          ...(adminSwagger.components?.responses || {})
         }
       }
     };

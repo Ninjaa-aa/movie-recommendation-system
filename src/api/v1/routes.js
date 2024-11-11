@@ -14,6 +14,8 @@ const notificationRoutes = require('./notification/notification.routes');
 const newsRoutes = require('./news/news.routes');
 const boxOfficeRoutes = require('./boxOffice/boxOffice.routes');
 const awardRoutes = require('./awards/award.routes');
+const communityRoutes = require('./community/community.routes');
+const adminRoutes = require('./admin/admin.routes');
 
 // Logging middleware for all routes
 router.use((req, res, next) => {
@@ -34,6 +36,8 @@ router.use('/notifications', notificationRoutes);
 router.use('/news', newsRoutes);
 router.use('/box-office', boxOfficeRoutes);
 router.use('/awards', awardRoutes);
+router.use('/community', communityRoutes);
+router.use('/admin', adminRoutes);
 
 
 module.exports = router;

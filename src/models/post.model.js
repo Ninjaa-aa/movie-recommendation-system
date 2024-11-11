@@ -1,4 +1,6 @@
 // src/models/post.model.js
+const mongoose = require('mongoose');
+
 const postSchema = new mongoose.Schema({
   content: {
     type: String,
@@ -65,8 +67,3 @@ postSchema.index({ mentions: 1 });
 
 const Post = mongoose.model('Post', postSchema);
 
-module.exports = {
-  Forum,
-  Topic,
-  Post
-};

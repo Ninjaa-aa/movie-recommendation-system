@@ -1,4 +1,3 @@
-// src/api/v1/reviews/review.service.js
 const Review = require('../../../models/review.model');
 const ApiError = require('../../../utils/ApiError');
 
@@ -12,7 +11,9 @@ class ReviewService {
     return Review.create({
       userId,
       movieId,
-      content
+      content,
+      isHighlighted: false, // Default value
+      likes: 0 // Default value
     });
   }
 
@@ -28,46 +29,117 @@ class ReviewService {
   }
 
   async getMovieReviews(movieId, highlighted, page, limit) {
-    const skip = (page - 1) * limit;
-    const query = { movieId };
-    if (highlighted) {
-      query.isHighlighted = true;
+    try {
+      const skip = (page - 1) * limit;
+      const query = { movieId };
+      
+      if (highlighted === true) {
+        query.isHighlighted = true;
+      }
+
+      const reviews = await Review.find(query)
+        .populate({
+          path: 'userId',
+          select: 'username profilePicture'
+        })
+        .populate({
+          path: 'movieId',
+          select: 'title posterPath'
+        })
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean(); // Convert to plain JavaScript objects
+
+      const total = await Review.countDocuments(query);
+
+      // Transform the results to include formatted dates and additional fields
+      const formattedReviews = reviews.map(review => ({
+        ...review,
+        createdAt: review.createdAt ? new Date(review.createdAt).toISOString() : null,
+        updatedAt: review.updatedAt ? new Date(review.updatedAt).toISOString() : null,
+        user: review.userId ? {
+          id: review.userId._id,
+          username: review.userId.username,
+          profilePicture: review.userId.profilePicture
+        } : null,
+        movie: review.movieId ? {
+          id: review.movieId._id,
+          title: review.movieId.title,
+          posterPath: review.movieId.posterPath
+        } : null
+      }));
+
+      return {
+        results: formattedReviews,
+        total,
+        page: parseInt(page),
+        totalPages: Math.ceil(total / limit)
+      };
+    } catch (error) {
+      console.error('Error in getMovieReviews:', error);
+      throw error;
     }
-
-    const reviews = await Review.find(query)
-      .populate('userId', 'username')
-      .skip(skip)
-      .limit(limit)
-      .sort({ likes: -1, createdAt: -1 });
-
-    const total = await Review.countDocuments(query);
-
-    return {
-      results: reviews,
-      total,
-      page: parseInt(page),
-      totalPages: Math.ceil(total / limit)
-    };
   }
 
   async getHighlightedReviews(page, limit) {
-    const skip = (page - 1) * limit;
-    
-    const reviews = await Review.find({ isHighlighted: true })
-      .populate('userId', 'username')
-      .populate('movieId', 'title')
-      .skip(skip)
-      .limit(limit)
-      .sort({ likes: -1, createdAt: -1 });
+    try {
+      const skip = (page - 1) * limit;
+      
+      const reviews = await Review.find({ isHighlighted: true })
+        .populate({
+          path: 'userId',
+          select: 'username profilePicture'
+        })
+        .populate({
+          path: 'movieId',
+          select: 'title posterPath'
+        })
+        .skip(skip)
+        .limit(limit)
+        .sort({ likes: -1, createdAt: -1 })
+        .lean();
 
-    const total = await Review.countDocuments({ isHighlighted: true });
+      const total = await Review.countDocuments({ isHighlighted: true });
 
-    return {
-      results: reviews,
-      total,
-      page: parseInt(page),
-      totalPages: Math.ceil(total / limit)
-    };
+      // Transform the results to include formatted dates and additional fields
+      const formattedReviews = reviews.map(review => ({
+        ...review,
+        createdAt: review.createdAt ? new Date(review.createdAt).toISOString() : null,
+        updatedAt: review.updatedAt ? new Date(review.updatedAt).toISOString() : null,
+        user: review.userId ? {
+          id: review.userId._id,
+          username: review.userId.username,
+          profilePicture: review.userId.profilePicture
+        } : null,
+        movie: review.movieId ? {
+          id: review.movieId._id,
+          title: review.movieId.title,
+          posterPath: review.movieId.posterPath
+        } : null
+      }));
+
+      return {
+        results: formattedReviews,
+        total,
+        page: parseInt(page),
+        totalPages: Math.ceil(total / limit)
+      };
+    } catch (error) {
+      console.error('Error in getHighlightedReviews:', error);
+      throw error;
+    }
+  }
+
+  // Add a method to highlight/unhighlight a review
+  async toggleHighlight(reviewId) {
+    const review = await Review.findById(reviewId);
+    if (!review) {
+      throw new ApiError(404, 'Review not found');
+    }
+
+    review.isHighlighted = !review.isHighlighted;
+    return review.save();
   }
 }
 

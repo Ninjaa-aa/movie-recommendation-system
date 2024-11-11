@@ -1,6 +1,6 @@
 // src/api/v1/community/forum.service.js
 const slugify = require('slugify');
-const { Forum, Topic, Post } = require('../../../models/community.models');
+const { Forum, Topic, Post } = require('../../../models/community.model');
 const ApiError = require('../../../utils/ApiError');
 const logger = require('../../../utils/logger');
 
@@ -172,3 +172,5 @@ class ForumService {
     }
   }
 }
+
+module.exports = ForumService;

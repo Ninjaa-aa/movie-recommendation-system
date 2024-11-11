@@ -4,7 +4,7 @@ const { validate } = require('../../../middleware/validation.middleware');
 const {isAuth} = require('../../../middleware/auth.middleware');
 const communityValidation = require('./community.validation');
 const communityController = require('./community.controller');
-const { checkForumModerator } = require('../../../middlewares/forumModerator');
+const { checkForumModerator } = require('../../../middleware/forumModerator.middleware');
 
 const router = express.Router();
 
@@ -44,7 +44,7 @@ router
 router
   .route('/forums/:forumId/topics')
   .post(
-    auth(),
+    isAuth,
     validate(communityValidation.createTopic),
     communityController.createTopic
   )

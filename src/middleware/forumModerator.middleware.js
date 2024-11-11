@@ -1,5 +1,5 @@
 // src/middlewares/forumModerator.js
-const { Forum } = require('../models/community.models');
+const { Forum } = require('../models/community.model');
 const ApiError = require('../utils/ApiError');
 
 const checkForumModerator = async (req, res, next) => {

@@ -15,7 +15,7 @@ const parseField = (value, field) => {
     // If parsing fails, handle based on field type
     if ([
       'genre', 'trivia', 'goofs', 'tags', 'relatedMovies', 'relatedActors',
-      'recipients' // Added for awards
+      'recipients'
     ].includes(field)) {
       // For simple arrays, split by comma if it contains commas
       if (value.includes(',')) {
@@ -35,33 +35,16 @@ exports.validate = (schema) => {
       // Parse JSON strings in request body
       if (req.body) {
         const fieldsToHandle = [
-          // Movie related fields
-          'genre', 
-          'cast', 
-          'soundtrack', 
-          'trivia', 
-          'goofs',
-          // Additional fields
-          'tags', 
-          'relatedMovies', 
-          'relatedActors', 
-          'source',
-          // Award related fields
-          'recipients',
-          'ceremony',
-          'presentedBy',
-          'acceptedBy',
-          // Any other array or object fields
-          'keywords',
-          'awards',
-          'preferences'
+          'genre', 'cast', 'soundtrack', 'trivia', 'goofs',
+          'tags', 'relatedMovies', 'relatedActors', 'source',
+          'recipients', 'ceremony', 'presentedBy', 'acceptedBy',
+          'keywords', 'awards', 'preferences'
         ];
         
         fieldsToHandle.forEach(field => {
           if (req.body[field]) {
             req.body[field] = parseField(req.body[field], field);
             
-            // Ensure arrays for specific fields even after parsing
             if (!Array.isArray(req.body[field]) && 
                 ['genre', 'trivia', 'goofs', 'tags', 'relatedMovies', 
                  'relatedActors', 'keywords', 'recipients'].includes(field)) {
@@ -70,7 +53,7 @@ exports.validate = (schema) => {
           }
         });
 
-        // Special handling for nested fields
+        // Handle special cases
         if (req.body.cast && typeof req.body.cast === 'string') {
           try {
             req.body.cast = JSON.parse(req.body.cast);
@@ -79,22 +62,18 @@ exports.validate = (schema) => {
           }
         }
 
-        // Special handling for award recipients
         if (req.body.recipients && typeof req.body.recipients === 'string') {
           try {
             req.body.recipients = JSON.parse(req.body.recipients);
-            // Ensure each recipient has required fields
             if (Array.isArray(req.body.recipients)) {
               req.body.recipients = req.body.recipients.map(recipient => {
-                if (typeof recipient === 'string') {
-                  return { name: recipient, role: 'Unspecified' };
-                }
-                return recipient;
+                return typeof recipient === 'string' 
+                  ? { name: recipient, role: 'Unspecified' }
+                  : recipient;
               });
             }
           } catch (e) {
             console.error('Recipients parsing error:', e);
-            // If parsing fails, try to create a basic recipient structure
             if (typeof req.body.recipients === 'string') {
               req.body.recipients = [{
                 name: req.body.recipients,
@@ -104,12 +83,11 @@ exports.validate = (schema) => {
           }
         }
 
-        // Handle dates
+        // Handle dates and numbers
         if (req.body.ceremonyDate && typeof req.body.ceremonyDate === 'string') {
           req.body.ceremonyDate = new Date(req.body.ceremonyDate);
         }
 
-        // Convert year to number if it's a string
         if (req.body.year && typeof req.body.year === 'string') {
           req.body.year = parseInt(req.body.year, 10);
         }
@@ -127,30 +105,29 @@ exports.validate = (schema) => {
       // Validate request parts
       const validationErrors = [];
 
-      if (schema.params) {
+      // Only validate parts that exist in the schema
+      if (schema.params && Object.keys(req.params || {}).length > 0) {
         const { error } = schema.params.validate(req.params);
         if (error) validationErrors.push(error);
       }
 
-      if (schema.query) {
+      if (schema.query && Object.keys(req.query || {}).length > 0) {
         const { error } = schema.query.validate(req.query);
         if (error) validationErrors.push(error);
       }
 
-      if (schema.body) {
+      if (schema.body && Object.keys(req.body || {}).length > 0) {
         const { error } = schema.body.validate(req.body);
         if (error) validationErrors.push(error);
       }
 
       if (validationErrors.length > 0) {
-        const errorMessage = validationErrors
-          .map(error => error.details.map(detail => detail.message))
-          .flat()
-          .join(', ');
-
         return ApiResponse.error(res, {
           statusCode: 422,
-          message: errorMessage
+          message: validationErrors
+            .map(error => error.details.map(detail => detail.message))
+            .flat()
+            .join(', ')
         });
       }
 
@@ -164,13 +141,86 @@ exports.validate = (schema) => {
       console.error('Validation middleware error:', error);
       return ApiResponse.error(res, {
         statusCode: 422,
-        message: error.message
+        message: 'Validation failed: ' + error.message
       });
     }
   };
 };
 
-// Keep existing rating and review validation...
+// Wishlist validation schemas
+exports.wishlistValidation = {
+  addToWishlist: {
+    body: Joi.object({
+      movieId: Joi.string()
+        .required()
+        .regex(/^[0-9a-fA-F]{24}$/)
+        .messages({
+          'string.pattern.base': 'Invalid movie ID format',
+          'any.required': 'Movie ID is required'
+        }),
+      priority: Joi.string()
+        .valid('Low', 'Medium', 'High')
+        .default('Medium'),
+      notes: Joi.string()
+        .max(500)
+        .allow('', null)
+    })
+  },
+  
+  updateWishlistItem: {  // New schema for PUT request
+    params: Joi.object({
+      movieId: Joi.string()
+        .required()
+        .regex(/^[0-9a-fA-F]{24}$/)
+        .messages({
+          'string.pattern.base': 'Invalid movie ID format',
+          'any.required': 'Movie ID is required'
+        })
+    }),
+    body: Joi.object({
+      priority: Joi.string()
+        .valid('Low', 'Medium', 'High')
+        .required(),
+      notes: Joi.string()
+        .max(500)
+        .allow('', null)
+        .required()
+    })
+  },
+
+  updateNotes: {
+    params: Joi.object({
+      movieId: Joi.string()
+        .required()
+        .regex(/^[0-9a-fA-F]{24}$/)
+        .messages({
+          'string.pattern.base': 'Invalid movie ID format',
+          'any.required': 'Movie ID is required'
+        })
+    }),
+    body: Joi.object({
+      priority: Joi.string()
+        .valid('Low', 'Medium', 'High'),
+      notes: Joi.string()
+        .max(500)
+        .allow('', null)
+    }).min(1)
+  },
+
+  removeFromWishlist: {
+    params: Joi.object({
+      movieId: Joi.string()
+        .required()
+        .regex(/^[0-9a-fA-F]{24}$/)
+        .messages({
+          'string.pattern.base': 'Invalid movie ID format',
+          'any.required': 'Movie ID is required'
+        })
+    })
+  }
+};
+
+// Rating validation
 exports.validateRating = (req, res, next) => {
   const schema = Joi.object({
     rating: Joi.number().min(1).max(5).required(),
@@ -184,6 +234,7 @@ exports.validateRating = (req, res, next) => {
   next();
 };
 
+// Review validation
 exports.validateReview = (req, res, next) => {
   const schema = Joi.object({
     content: Joi.string().min(10).max(1000).required(),

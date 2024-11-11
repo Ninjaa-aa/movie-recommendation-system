@@ -1,4 +1,3 @@
-// src/api/v1/reviews/review.controller.js
 const ReviewService = require('./review.service');
 const { ApiResponse } = require('../../../utils/apiResponse');
 const { catchAsync } = require('../../../utils/catchAsync');
@@ -33,9 +32,18 @@ class ReviewController {
 
   getMovieReviews = catchAsync(async (req, res) => {
     const { movieId } = req.params;
-    const { page = 1, limit = 10, highlighted = false } = req.query;
+    const { 
+      page = 1, 
+      limit = 10, 
+      highlighted = false 
+    } = req.query;
 
-    const reviews = await ReviewService.getMovieReviews(movieId, highlighted, page, limit);
+    const reviews = await ReviewService.getMovieReviews(
+      movieId,
+      highlighted === 'true', // Convert string to boolean
+      parseInt(page),
+      parseInt(limit)
+    );
     
     return ApiResponse.success(res, {
       message: 'Reviews retrieved successfully',
@@ -44,9 +52,15 @@ class ReviewController {
   });
 
   getHighlightedReviews = catchAsync(async (req, res) => {
-    const { page = 1, limit = 10 } = req.query;
+    const { 
+      page = 1, 
+      limit = 10 
+    } = req.query;
 
-    const reviews = await ReviewService.getHighlightedReviews(page, limit);
+    const reviews = await ReviewService.getHighlightedReviews(
+      parseInt(page),
+      parseInt(limit)
+    );
     
     return ApiResponse.success(res, {
       message: 'Highlighted reviews retrieved successfully',
@@ -55,5 +69,4 @@ class ReviewController {
   });
 }
 
-const reviewController = new ReviewController();
-module.exports = reviewController;
+module.exports = new ReviewController();

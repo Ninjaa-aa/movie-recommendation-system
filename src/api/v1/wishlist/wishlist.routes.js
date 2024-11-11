@@ -2,36 +2,37 @@
 const express = require('express');
 const router = express.Router();
 const wishlistController = require('./wishlist.controller');
+const { validate, wishlistValidation } = require('../../../middleware/validation.middleware');
 const { verifyToken } = require('../../../config/jwt');
-const { validate } = require('../../../middleware/validation.middleware');
-const wishlistValidation = require('./wishlist.validation');
 
-// All routes require authentication
-router.use(verifyToken);
+router.use(verifyToken); // Protect all wishlist routes
 
-// Get wishlist
+// Get routes
 router.get('/', wishlistController.getWishlist);
-
-// Get available movies for wishlist
 router.get('/available-movies', wishlistController.getAvailableMovies);
 
-// Add movie to wishlist
-router.post('/',
-  validate(wishlistValidation.addMovie),
+// Post route
+router.post('/', 
+  validate(wishlistValidation.addToWishlist),
   wishlistController.addToWishlist
 );
 
-// Remove movie from wishlist
-router.delete('/:movieId',
-  validate(wishlistValidation.params, 'params'),
-  wishlistController.removeFromWishlist
+// Put route for updating entire wishlist item
+router.put('/:movieId',
+  validate(wishlistValidation.updateWishlistItem),
+  wishlistController.updateMovieNotes
 );
 
-// Update movie notes/priority
-router.put('/:movieId',
-  validate(wishlistValidation.params, 'params'),
-  validate(wishlistValidation.updateMovie),
+// Patch route for partial updates
+router.patch('/:movieId/notes',
+  validate(wishlistValidation.updateNotes),
   wishlistController.updateMovieNotes
+);
+
+// Delete route
+router.delete('/:movieId',
+  validate(wishlistValidation.removeFromWishlist),
+  wishlistController.removeFromWishlist
 );
 
 module.exports = router;

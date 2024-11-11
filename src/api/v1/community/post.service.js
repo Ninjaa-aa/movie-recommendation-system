@@ -156,8 +156,4 @@ class PostService {
   }
 }
 
-module.exports = {
-  forumService: new ForumService(),
-  topicService: new TopicService(),
-  postService: new PostService()
-};
+module.exports = PostService;

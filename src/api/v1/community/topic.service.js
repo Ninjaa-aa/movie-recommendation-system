@@ -117,3 +117,5 @@ class TopicService {
     }
   }
 }
+
+module.exports = TopicService;

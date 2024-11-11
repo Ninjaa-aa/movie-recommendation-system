@@ -5,22 +5,28 @@ const routes = require('../api/v1/routes');
 const errorHandler = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
 const { setupSwagger } = require('./swagger');
-const configureBodyParser = require('../middleware/body-parser.middleware');
 
 const configureApp = (app) => {
-  // Basic middleware
-  app.use(helmet());
-  app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  // Basic middleware configuration
+  app.use(helmet({
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' // Enable CSP in production
+  }));
+  
+  // Configure CORS
+  app.use(cors({
+    origin: process.env.CORS_ORIGIN || '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
 
-  // Setup Swagger
-  setupSwagger(app);
+  // Body parser configuration
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ 
+    extended: true,
+    limit: '10mb'
+  }));
 
-  configureBodyParser(app);
-
-  console.log('=== Award Route Accessed ===');
-  // Request logging
+  // Request logging middleware
   app.use((req, res, next) => {
     logger.info(`${req.method} ${req.originalUrl}`);
     if (req.body && Object.keys(req.body).length > 0) {
@@ -29,20 +35,22 @@ const configureApp = (app) => {
     next();
   });
 
+  // Setup Swagger documentation
+  setupSwagger(app);
+
   // API routes
   app.use('/api/v1', routes);
 
-  // 404 handler
-  app.use((req, res) => {
-    logger.debug(`Not Found: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({
+  // Error handling middleware
+  app.use((err, req, res, next) => {
+    logger.error('Error:', err);
+    const statusCode = err.statusCode || 500;
+    res.status(statusCode).json({
       success: false,
-      message: 'Resource not found'
+      message: err.message || 'Internal server error',
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
   });
-
-  // Error handler
-  app.use(errorHandler);
 
   return app;
 };

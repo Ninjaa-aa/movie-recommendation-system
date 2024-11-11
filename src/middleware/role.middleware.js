@@ -1,5 +1,5 @@
 // src/middleware/role.middleware.js
-const { ApiError } = require('../utils/apiResponse');
+const ApiError = require('../utils/ApiError'); // Changed from apiResponse to ApiError
 
 const authorizeRoles = (...roles) => {
   return (req, res, next) => {

@@ -1,0 +1,564 @@
+openapi: 3.0.0
+info:
+  title: Admin Operations API
+  version: 1.0.0
+  description: |
+    API endpoints for admin operations including analytics and moderation.
+    
+    ## Features
+    - Site statistics and analytics
+    - Content moderation
+    - User activity tracking
+    - Trend analysis
+
+servers:
+  - url: /api/v1/admin
+    description: Admin API endpoint
+
+tags:
+  - name: Analytics
+    description: Statistical analysis and insights
+  - name: Moderation
+    description: Content moderation operations
+
+paths:
+  /api/v1/admin/stats/overall:
+    get:
+      tags:
+        - Analytics
+      summary: Get overall site statistics
+      description: Retrieve comprehensive statistics about site usage and engagement
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          description: Time period for statistics
+          schema:
+            type: string
+            enum: [24h, 7d, 30d, 90d]
+            default: 30d
+      responses:
+        200:
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverallStatsResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/stats/users:
+    get:
+      tags:
+        - Analytics
+      summary: Get user statistics
+      description: Retrieve detailed user activity and growth metrics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PeriodParam'
+      responses:
+        200:
+          description: User statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStatsResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/stats/movies:
+    get:
+      tags:
+        - Analytics
+      summary: Get movie statistics
+      description: Retrieve movie popularity and engagement metrics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PeriodParam'
+      responses:
+        200:
+          description: Movie statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieStatsResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/stats/engagement:
+    get:
+      tags:
+        - Analytics
+      summary: Get engagement statistics
+      description: Retrieve user engagement and interaction metrics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PeriodParam'
+      responses:
+        200:
+          description: Engagement statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngagementStatsResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/stats/genres:
+    get:
+      tags:
+        - Analytics
+      summary: Get genre statistics
+      description: Retrieve genre popularity and trend metrics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PeriodParam'
+      responses:
+        200:
+          description: Genre statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenreStatsResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/stats/actors:
+    get:
+      tags:
+        - Analytics
+      summary: Get actor statistics
+      description: Retrieve actor popularity and search metrics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PeriodParam'
+      responses:
+        200:
+          description: Actor statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActorStatsResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/moderation/queue:
+    get:
+      tags:
+        - Moderation
+      summary: Get moderation queue
+      description: Retrieve items pending moderation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          description: Type of content to moderate
+          schema:
+            type: string
+            enum: [REVIEW, FORUM_POST, FORUM_TOPIC, USER_REPORT]
+        - name: status
+          in: query
+          description: Moderation status
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED]
+        - name: moderator
+          in: query
+          description: Filter by moderator ID
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        200:
+          description: Moderation queue retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationQueueResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/moderation/{itemId}:
+    post:
+      tags:
+        - Moderation
+      summary: Moderate content
+      description: Approve or reject content in moderation queue
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          description: ID of the item to moderate
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerationInput'
+      responses:
+        200:
+          description: Content moderated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    PeriodParam:
+      name: period
+      in: query
+      description: Time period for statistics
+      schema:
+        type: string
+        enum: [24h, 7d, 30d, 90d]
+        default: 30d
+    
+    PageParam:
+      name: page
+      in: query
+      description: Page number for pagination
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    OverallStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Statistics retrieved successfully"
+        data:
+          type: object
+          properties:
+            userStats:
+              $ref: '#/components/schemas/UserStats'
+            movieStats:
+              $ref: '#/components/schemas/MovieStats'
+            engagementStats:
+              $ref: '#/components/schemas/EngagementStats'
+            genreStats:
+              $ref: '#/components/schemas/GenreStats'
+            actorStats:
+              $ref: '#/components/schemas/ActorStats'
+
+    UserStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+          example: 10000
+        newUsers:
+          type: integer
+          example: 150
+        activeUsers:
+          type: integer
+          example: 5000
+
+    MovieStats:
+      type: object
+      properties:
+        views:
+          type: array
+          items:
+            type: object
+            properties:
+              movie:
+                $ref: '#/components/schemas/MovieRef'
+              views:
+                type: integer
+                example: 1500
+        ratings:
+          type: array
+          items:
+            type: object
+            properties:
+              movie:
+                $ref: '#/components/schemas/MovieRef'
+              ratings:
+                type: integer
+                example: 500
+        watchlist:
+          type: array
+          items:
+            type: object
+            properties:
+              movie:
+                $ref: '#/components/schemas/MovieRef'
+              adds:
+                type: integer
+                example: 300
+
+    EngagementStats:
+      type: object
+      properties:
+        movie_view:
+          type: integer
+          example: 5000
+        review_create:
+          type: integer
+          example: 200
+        rating_add:
+          type: integer
+          example: 1000
+        watchlist_add:
+          type: integer
+          example: 800
+        forum_post:
+          type: integer
+          example: 300
+
+    GenreStats:
+      type: object
+      properties:
+        genres:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "Action"
+              views:
+                type: integer
+                example: 2000
+              ratings:
+                type: integer
+                example: 500
+              watchlist:
+                type: integer
+                example: 300
+
+    ActorStats:
+      type: object
+      properties:
+        topSearched:
+          type: array
+          items:
+            type: object
+            properties:
+              actor:
+                $ref: '#/components/schemas/ActorRef'
+              searchCount:
+                type: integer
+                example: 150
+
+    ModerationQueueResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Moderation queue retrieved successfully"
+        data:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/ModerationItem'
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 20
+            total:
+              type: integer
+              example: 50
+            totalPages:
+              type: integer
+              example: 3
+
+    ModerationItem:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        type:
+          type: string
+          enum: [REVIEW, FORUM_POST, FORUM_TOPIC, USER_REPORT]
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+        content:
+          type: object
+          description: Content reference based on type
+        reporter:
+          $ref: '#/components/schemas/UserRef'
+        reason:
+          type: string
+        moderator:
+          $ref: '#/components/schemas/UserRef'
+        moderationNotes:
+          type: string
+        moderatedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ModerationInput:
+      type: object
+      required:
+        - decision
+      properties:
+        decision:
+          type: string
+          enum: [APPROVED, REJECTED]
+        notes:
+          type: string
+          maxLength: 1000
+
+    ModerationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Content moderated successfully"
+        data:
+          $ref: '#/components/schemas/ModerationItem'
+
+    MovieRef:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        title:
+          type: string
+          example: "The Dark Knight"
+
+    ActorRef:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        name:
+          type: string
+          example: "Christian Bale"
+        profilePhoto:
+          type: string
+          format: uri
+
+    UserRef:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        name:
+          type: string
+          example: "John Doe"
+        avatar:
+          type: string
+          format: uri
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Authentication required"
+
+    Forbidden:
+      description: Permission denied
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Admin privileges required"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Resource not found"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
