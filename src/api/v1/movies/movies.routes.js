@@ -49,6 +49,14 @@ router.put('/:movieId',
   movieController.updateMovie
 );
 
+// Add stats update endpoint
+router.post(
+  '/:movieId/stats',
+  isAuth,
+  authorizeRoles('admin'),
+  movieController.updateMovieStats
+);
+
 router.delete('/:movieId',
   isAuth,
   authorizeRoles('admin'),

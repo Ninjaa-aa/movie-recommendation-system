@@ -7,7 +7,7 @@ const movieSchema = new Schema({
     type: String, 
     required: true,
     trim: true,
-    index: true // Single index for direct title queries
+    index: true
   },
   genre: [{ 
     type: String, 
@@ -23,12 +23,12 @@ const movieSchema = new Schema({
   director: { 
     type: String, 
     required: true,
-    index: true // For director searches
+    index: true
   },
   cast: [{ 
     name: {
       type: String,
-      index: true // For actor searches
+      index: true
     },
     role: String,
     order: {
@@ -107,6 +107,71 @@ const movieSchema = new Schema({
     default: null,
     index: true
   },
+  // Box office references and stats
+  boxOffice: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'BoxOffice'
+  },
+  boxOfficeStats: {
+    totalWorldwide: {
+      type: Number,
+      default: 0,
+      index: true
+    },
+    openingWeekend: {
+      type: Number,
+      default: 0
+    },
+    budget: {
+      type: Number,
+      default: 0
+    }
+  },
+  // Award references and stats
+  awards: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Award'
+  }],
+  awardStats: {
+    totalAwards: {
+      type: Number,
+      default: 0,
+      index: true
+    },
+    totalNominations: {
+      type: Number,
+      default: 0
+    },
+    majorAwards: {
+      oscars: {
+        wins: { type: Number, default: 0 },
+        nominations: { type: Number, default: 0 }
+      },
+      goldenGlobes: {
+        wins: { type: Number, default: 0 },
+        nominations: { type: Number, default: 0 }
+      },
+      bafta: {
+        wins: { type: Number, default: 0 },
+        nominations: { type: Number, default: 0 }
+      }
+    }
+  },
+  // Production details
+  production: {
+    company: String,
+    country: [{
+      type: String,
+      trim: true
+    }],
+    budget: {
+      amount: Number,
+      currency: {
+        type: String,
+        default: 'USD'
+      }
+    }
+  },
   // Additional metadata
   keywords: [{
     type: String,
@@ -123,15 +188,16 @@ const movieSchema = new Schema({
     artist: String,
     duration: String
   }],
-  awards: [{
-    name: String,
-    year: Number,
-    category: String,
-    recipient: String,
-    isNomination: {
-      type: Boolean,
-      default: false
-    }
+  certifications: [{
+    region: {
+      type: String,
+      required: true
+    },
+    rating: {
+      type: String,
+      required: true
+    },
+    ratingReason: String
   }],
   ageRating: { 
     type: String, 
@@ -148,7 +214,7 @@ const movieSchema = new Schema({
   timestamps: true
 });
 
-// Compound indexes for efficient filtering and sorting
+// Indexes
 movieSchema.index({ isActive: 1, avgRating: -1 });
 movieSchema.index({ isActive: 1, popularity: -1 });
 movieSchema.index({ isActive: 1, releaseYear: -1 });
@@ -157,9 +223,11 @@ movieSchema.index({ isActive: 1, genre: 1 });
 movieSchema.index({ isActive: 1, language: 1 });
 movieSchema.index({ isActive: 1, decade: 1 });
 movieSchema.index({ isActive: 1, lastViewedAt: -1 });
-movieSchema.index({ isActive: 1, 'awards.year': -1 });
+movieSchema.index({ 'boxOfficeStats.totalWorldwide': -1 });
+movieSchema.index({ 'awardStats.totalAwards': -1 });
+movieSchema.index({ 'production.country': 1 });
 
-// Text index for full-text search across multiple fields
+// Text search index
 movieSchema.index({
   title: 'text',
   director: 'text',
@@ -177,34 +245,40 @@ movieSchema.index({
   name: "MovieTextIndex"
 });
 
-// Pre-save middleware to set derived fields
+// Pre-save middleware
 movieSchema.pre('save', function(next) {
-  // Set release year
+  // Set release year and decade
   if (this.releaseDate) {
     this.releaseYear = this.releaseDate.getFullYear();
     this.decade = Math.floor(this.releaseYear / 10) * 10;
   }
 
   // Update popularity score
-  if (this.isModified('viewCount') || this.isModified('totalRatings') || 
-      this.isModified('reviewCount') || this.isModified('avgRating')) {
+  if (this.isModified('viewCount') || 
+      this.isModified('totalRatings') || 
+      this.isModified('reviewCount') || 
+      this.isModified('avgRating') ||
+      this.isModified('boxOfficeStats.totalWorldwide')) {
+    
     const viewWeight = 1;
     const ratingWeight = 2;
     const reviewWeight = 1.5;
     const avgRatingWeight = 3;
+    const boxOfficeWeight = 2;
     
-    // Calculate days since release
     const daysSinceRelease = this.releaseDate ? 
       Math.max(0, (Date.now() - this.releaseDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
     
-    // Time decay factor (reduces popularity of older movies gradually)
-    const timeDecay = Math.exp(-daysSinceRelease / 365); // Exponential decay over a year
+    const timeDecay = Math.exp(-daysSinceRelease / 365);
+    const boxOfficeScore = this.boxOfficeStats.totalWorldwide ? 
+      Math.min(100, this.boxOfficeStats.totalWorldwide / 1000000000) * boxOfficeWeight : 0;
     
     this.popularity = (
       (this.viewCount * viewWeight +
        this.totalRatings * ratingWeight +
        this.reviewCount * reviewWeight +
-       (this.avgRating * this.totalRatings) * avgRatingWeight) *
+       (this.avgRating * this.totalRatings) * avgRatingWeight +
+       boxOfficeScore) *
       timeDecay
     );
   }
@@ -212,14 +286,78 @@ movieSchema.pre('save', function(next) {
   next();
 });
 
-// Instance method to update view count
+// Instance methods
 movieSchema.methods.incrementViewCount = async function() {
   this.viewCount += 1;
   this.lastViewedAt = new Date();
   return this.save();
 };
 
-// Static method to get trending movies
+movieSchema.methods.updateAwardStats = async function() {
+  const awards = await mongoose.model('Award').find({ 
+    movie: this._id,
+    isActive: true 
+  });
+
+  this.awardStats = {
+    totalAwards: 0,
+    totalNominations: 0,
+    majorAwards: {
+      oscars: { wins: 0, nominations: 0 },
+      goldenGlobes: { wins: 0, nominations: 0 },
+      bafta: { wins: 0, nominations: 0 }
+    }
+  };
+
+  awards.forEach(award => {
+    if (award.isNomination) {
+      this.awardStats.totalNominations++;
+      
+      switch(award.organization.toLowerCase()) {
+        case 'academy awards':
+          award.isWinner ? 
+            this.awardStats.majorAwards.oscars.wins++ : 
+            this.awardStats.majorAwards.oscars.nominations++;
+          break;
+        case 'golden globes':
+          award.isWinner ? 
+            this.awardStats.majorAwards.goldenGlobes.wins++ : 
+            this.awardStats.majorAwards.goldenGlobes.nominations++;
+          break;
+        case 'bafta':
+          award.isWinner ? 
+            this.awardStats.majorAwards.bafta.wins++ : 
+            this.awardStats.majorAwards.bafta.nominations++;
+          break;
+      }
+    }
+    if (award.isWinner) {
+      this.awardStats.totalAwards++;
+    }
+  });
+
+  return this.save();
+};
+
+movieSchema.methods.updateBoxOfficeStats = async function() {
+  const boxOffice = await mongoose.model('BoxOffice').findOne({ 
+    movieId: this._id,
+    isActive: true 
+  });
+
+  if (boxOffice) {
+    this.boxOfficeStats = {
+      totalWorldwide: boxOffice.totalEarnings?.worldwide?.amount || 0,
+      openingWeekend: boxOffice.openingWeekend?.worldwide?.amount || 0,
+      budget: boxOffice.budget?.production?.amount || 0
+    };
+    await this.save();
+  }
+
+  return this;
+};
+
+// Static methods
 movieSchema.statics.getTrending = async function(options = {}) {
   const {
     period = 'week',
@@ -254,7 +392,6 @@ movieSchema.statics.getTrending = async function(options = {}) {
     .limit(limit);
 };
 
-// Static method to get top rated movies
 movieSchema.statics.getTopRated = async function(options = {}) {
   const {
     minRatings = 10,

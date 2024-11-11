@@ -1,63 +1,51 @@
-// src/config/app.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const path = require('path');
-const { setupSwagger } = require('./swagger');
 const routes = require('../api/v1/routes');
 const errorHandler = require('../middleware/error.middleware');
-const { ApiResponse } = require('../utils/apiResponse');
 const logger = require('../utils/logger');
+const { setupSwagger } = require('./swagger');
+const configureBodyParser = require('../middleware/body-parser.middleware');
 
 const configureApp = (app) => {
-  try {
-    // Security Middleware
-    app.use(helmet());
-    app.use(cors());
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
+  // Basic middleware
+  app.use(helmet());
+  app.use(cors());
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-    // Simple request logging middleware
-    // app.use((req, res, next) => {
-    //   logger.debug(`${req.method} ${req.originalUrl}`);
-    //   next();
-    // });
+      // Setup Swagger
+  setupSwagger(app);
 
-    // Setup Swagger
-    setupSwagger(app);
+  console.log('Setting up rate limiter');
+  configureBodyParser(app);
+  console.log('Setting up rate limiter');
 
-    // Mount routes with api/v1 prefix
-    app.use('/api/v1', routes);
+  // Request logging
+  app.use((req, res, next) => {
+    logger.info(`${req.method} ${req.originalUrl}`);
+    if (req.body && Object.keys(req.body).length > 0) {
+      logger.debug('Request body:', req.body);
+    }
+    next();
+  });
 
-    // Health check endpoint
-    app.get('/health', (req, res) => {
-      ApiResponse.success(res, {
-        message: 'Server is running',
-        data: {
-          timestamp: new Date(),
-          status: 'healthy'
-        }
-      });
+  // API routes
+  app.use('/api/v1', routes);
+
+  // 404 handler
+  app.use((req, res) => {
+    logger.debug(`Not Found: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({
+      success: false,
+      message: 'Resource not found'
     });
+  });
 
-    // 404 handler
-    app.use((req, res) => {
-      logger.debug(`Not Found: ${req.method} ${req.originalUrl}`);
-      ApiResponse.error(res, {
-        statusCode: 404,
-        message: 'Resource not found'
-      });
-    });
+  // Error handler
+  app.use(errorHandler);
 
-    // Global error handler
-    app.use(errorHandler);
-
-    return app;
-  } catch (error) {
-    logger.error('Error configuring app:', error);
-    throw error;
-  }
+  return app;
 };
 
 module.exports = configureApp;

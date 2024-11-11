@@ -269,6 +269,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/MoviesListResponse'
 
+  /api/v1/movies/{movieId}/stats:
+    post:
+      tags:
+        - Movies
+      summary: Update movie stats (box office and awards)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: movieId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Movie stats updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/ForbiddenError'
+        404:
+          description: Movie not found
+          
   /api/v1/movies/{movieId}:
     get:
       tags:
@@ -690,22 +717,131 @@ components:
               $ref: '#/components/schemas/Pagination'
 
     Movie:
-      allOf:
-        - $ref: '#/components/schemas/MovieInput'
-        - type: object
+  allOf:
+    - $ref: '#/components/schemas/MovieInput'
+    - type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        boxOffice:
+          type: string
+          description: Reference to box office data
+        boxOfficeStats:
+          type: object
           properties:
-            _id:
-              type: string
-              example: "507f1f77bcf86cd799439011"
-            avgRating:
+            totalWorldwide:
               type: number
-              example: 4.5
-            isActive:
-              type: boolean
-              example: true
-            createdAt:
+              description: Total worldwide earnings
+              example: 58800000
+            openingWeekend:
+              type: number
+              description: Opening weekend earnings
+              example: 15000000
+            budget:
+              type: number
+              description: Production budget
+              example: 25000000
+        awards:
+          type: array
+          items:
+            type: string
+            description: References to award documents
+        awardStats:
+          type: object
+          properties:
+            totalAwards:
+              type: number
+              example: 7
+            totalNominations:
+              type: number
+              example: 12
+            majorAwards:
+              type: object
+              properties:
+                oscars:
+                  type: object
+                  properties:
+                    wins:
+                      type: number
+                      example: 2
+                    nominations:
+                      type: number
+                      example: 4
+                goldenGlobes:
+                  type: object
+                  properties:
+                    wins:
+                      type: number
+                      example: 1
+                    nominations:
+                      type: number
+                      example: 3
+                bafta:
+                  type: object
+                  properties:
+                    wins:
+                      type: number
+                      example: 1
+                    nominations:
+                      type: number
+                      example: 2
+        production:
+          type: object
+          properties:
+            company:
               type: string
-              format: date-time
-            updatedAt:
-              type: string
-              format: date-time
+            country:
+              type: array
+              items:
+                type: string
+            budget:
+              type: object
+              properties:
+                amount:
+                  type: number
+                currency:
+                  type: string
+                  default: "USD"
+        certifications:
+          type: array
+          items:
+            type: object
+            properties:
+              region:
+                type: string
+              rating:
+                type: string
+              ratingReason:
+                type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        avgRating:
+          type: number
+          example: 4.5
+        totalRatings:
+          type: number
+          example: 1500
+        viewCount:
+          type: number
+          example: 25000
+        reviewCount:
+          type: number
+          example: 500
+        popularity:
+          type: number
+          example: 85.7
+        lastViewedAt:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

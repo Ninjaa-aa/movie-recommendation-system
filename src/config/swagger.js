@@ -31,7 +31,7 @@ const setupSwagger = (app) => {
     const searchSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/search.yaml'));
     const releaseNotificationSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/release-notification.yaml'));
     const newsSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/news.yaml'));
-
+    const boxOfficeAwardSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/box-office-award.yaml'));
     // Log loaded paths for debugging
     // logger.debug('Loaded paths:', {
     //   auth: Object.keys(authSwagger.paths || {}),
@@ -66,7 +66,8 @@ const setupSwagger = (app) => {
         { name: 'Movie Lists', description: 'Movie list management endpoints' },
         { name: 'Search', description: 'Search endpoints' },
         { name: 'Release Notifications', description: 'Release notification endpoints' },
-        { name: 'News', description: 'News article endpoints' }
+        { name: 'News', description: 'News article endpoints' },
+        { name: 'Box Office', description: 'Box office and award endpoints' }
       ],
       paths: {
         ...(authSwagger.paths || {}),
@@ -78,7 +79,8 @@ const setupSwagger = (app) => {
         ...(movieListSwagger.paths || {}),
         ...(searchSwagger.paths || {}),
         ...(releaseNotificationSwagger.paths || {}),
-        ...(newsSwagger.paths || {})
+        ...(newsSwagger.paths || {}),
+        ...(boxOfficeAwardSwagger.paths || {})
       },
       components: {
         securitySchemes: {
@@ -99,7 +101,8 @@ const setupSwagger = (app) => {
           ...(movieListSwagger.components?.schemas || {}),
           ...(searchSwagger.components?.schemas || {}),
           ...(releaseNotificationSwagger.components?.schemas || {}),
-          ...(newsSwagger.components?.schemas || {})
+          ...(newsSwagger.components?.schemas || {}),
+          ...(boxOfficeAwardSwagger.components?.schemas || {})
         },
         responses: {
           ...(baseSwagger.components?.responses || {}),
@@ -112,7 +115,8 @@ const setupSwagger = (app) => {
           ...(movieListSwagger.components?.responses || {}),
           ...(searchSwagger.components?.responses || {}),
           ...(releaseNotificationSwagger.components?.responses || {}),
-          ...(newsSwagger.components?.responses || {})
+          ...(newsSwagger.components?.responses || {}),
+          ...(boxOfficeAwardSwagger.components?.responses || {})
         }
       }
     };

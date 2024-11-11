@@ -16,7 +16,8 @@ const movieValidation = {
       cast: Joi.array().items(
         Joi.object({
           name: Joi.string().required(),
-          role: Joi.string().required()
+          role: Joi.string().required(),
+          order: Joi.number()
         })
       ).min(1).required(),
       releaseDate: Joi.date().required(),
@@ -29,6 +30,22 @@ const movieValidation = {
       status: Joi.string().valid(
         'Released', 'Coming Soon', 'In Production'
       ).required(),
+      production: Joi.object({
+        company: Joi.string(),
+        country: Joi.array().items(Joi.string().trim()),
+        budget: Joi.object({
+          amount: Joi.number().min(0),
+          currency: Joi.string().default('USD')
+        })
+      }),
+      certifications: Joi.array().items(
+        Joi.object({
+          region: Joi.string().required(),
+          rating: Joi.string().required(),
+          ratingReason: Joi.string()
+        })
+      ),
+      keywords: Joi.array().items(Joi.string()),
       trivia: Joi.array().items(Joi.string()),
       goofs: Joi.array().items(Joi.string()),
       soundtrack: Joi.array().items(
@@ -59,7 +76,8 @@ const movieValidation = {
       cast: Joi.array().items(
         Joi.object({
           name: Joi.string().required(),
-          role: Joi.string().required()
+          role: Joi.string().required(),
+          order: Joi.number()
         })
       ),
       releaseDate: Joi.date(),
@@ -72,6 +90,22 @@ const movieValidation = {
       status: Joi.string().valid(
         'Released', 'Coming Soon', 'In Production'
       ),
+      production: Joi.object({
+        company: Joi.string(),
+        country: Joi.array().items(Joi.string().trim()),
+        budget: Joi.object({
+          amount: Joi.number().min(0),
+          currency: Joi.string()
+        })
+      }),
+      certifications: Joi.array().items(
+        Joi.object({
+          region: Joi.string().required(),
+          rating: Joi.string().required(),
+          ratingReason: Joi.string()
+        })
+      ),
+      keywords: Joi.array().items(Joi.string()),
       trivia: Joi.array().items(Joi.string()),
       goofs: Joi.array().items(Joi.string()),
       soundtrack: Joi.array().items(
@@ -104,8 +138,18 @@ const movieValidation = {
         'Released', 'Coming Soon', 'In Production'
       ),
       search: Joi.string(),
-      sortBy: Joi.string().valid('title', 'releaseDate', 'runtime', 'avgRating'),
-      sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+      sortBy: Joi.string().valid(
+        'title', 'releaseDate', 'runtime', 'avgRating', 
+        'popularity', 'boxOfficeStats.totalWorldwide', 
+        'awardStats.totalAwards'
+      ),
+      sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
+      minRating: Joi.number().min(0).max(5),
+      maxRating: Joi.number().min(0).max(5),
+      releaseYear: Joi.number(),
+      decade: Joi.number(),
+      hasAwards: Joi.boolean(),
+      country: Joi.string()
     })
   }
 };

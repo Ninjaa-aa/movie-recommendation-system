@@ -3,32 +3,36 @@ const logger = require('../utils/logger');
 const { ApiResponse } = require('../utils/apiResponse');
 
 const errorHandler = (err, req, res, next) => {
-  logger.error(err.stack);
+  logger.error('Global error handler caught error:', err);
 
   if (err.name === 'ValidationError') {
     return ApiResponse.error(res, {
       statusCode: 400,
-      message: Object.values(err.errors).map(error => error.message).join(', ')
+      message: 'Validation Error',
+      error: err.errors
     });
   }
 
-  if (err.code === 11000) {
+  if (err.name === 'CastError') {
     return ApiResponse.error(res, {
-      statusCode: 409,
-      message: 'Duplicate field value entered'
+      statusCode: 400,
+      message: 'Invalid ID format',
+      error: err
     });
   }
 
-  if (err.isOperational) {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     return ApiResponse.error(res, {
-      statusCode: err.statusCode,
-      message: err.message
+      statusCode: 400,
+      message: 'Invalid JSON format',
+      error: err
     });
   }
 
   return ApiResponse.error(res, {
-    statusCode: 500,
-    message: 'Something went wrong'
+    statusCode: err.statusCode || 500,
+    message: err.message || 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err : undefined
   });
 };
 

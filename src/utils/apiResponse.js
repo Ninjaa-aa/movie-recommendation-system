@@ -1,30 +1,23 @@
-// src/utils/apiResponse.js
-class ApiError extends Error {
-  constructor(statusCode, message) {
-    super(message);
-    this.statusCode = statusCode;
-    this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
-    this.isOperational = true;
-
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
 class ApiResponse {
   static success(res, { statusCode = 200, message = 'Success', data = null }) {
-    return res.status(statusCode).json({
+    const response = {
       success: true,
       message,
       data
-    });
+    };
+    console.log('Sending success response:', response);
+    return res.status(statusCode).json(response);
   }
 
-  static error(res, { statusCode = 500, message = 'Internal Server Error' }) {
-    return res.status(statusCode).json({
+  static error(res, { statusCode = 500, message = 'Error', error = null }) {
+    const response = {
       success: false,
-      message
-    });
+      message,
+      error
+    };
+    console.log('Sending error response:', response);
+    return res.status(statusCode).json(response);
   }
 }
 
-module.exports = { ApiResponse, ApiError };
+module.exports = { ApiResponse };

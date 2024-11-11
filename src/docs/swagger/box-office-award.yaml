@@ -1,0 +1,683 @@
+openapi: 3.0.0
+info:
+  title: Box Office and Awards API
+  version: 1.0.0
+  description: API endpoints for box office data and awards
+
+paths:
+  /api/v1/box-office/top-grossing:
+    get:
+      tags:
+        - Box Office
+      summary: Get top grossing movies
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [all-time, week, month, year]
+            default: all-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Top grossing movies retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxOfficeListResponse'
+
+  /api/v1/box-office/weekly-trends:
+    get:
+      tags:
+        - Box Office
+      summary: Get weekly box office trends
+      responses:
+        200:
+          description: Weekly trends retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxOfficeListResponse'
+
+  /api/v1/box-office/movies/{movieId}/box-office:
+    post:
+      tags:
+        - Box Office
+      summary: Create box office data for a movie
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoxOfficeInput'
+      responses:
+        201:
+          description: Box office data created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxOfficeResponse'
+
+    put:
+      tags:
+        - Box Office
+      summary: Update box office data for a movie
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoxOfficeUpdateInput'
+      responses:
+        200:
+          description: Box office data updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxOfficeResponse'
+
+    get:
+      tags:
+        - Box Office
+      summary: Get box office data for a movie
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Box office data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxOfficeResponse'
+
+  /api/v1/awards:
+    post:
+      tags:
+        - Awards
+      summary: Create a new award
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AwardInput'
+            examples:
+              award:
+                summary: Example award submission
+                value:
+                  name: "Academy Award"
+                  organization: "Academy of Motion Picture Arts and Sciences"
+                  category: "Best Picture"
+                  year: 2024
+                  ceremony: "96th Academy Awards"
+                  isNomination: true
+                  isWinner: false
+                  movie: "65f1a234b876a123b45c6789"
+                  recipients: [
+                    {
+                      name: "John Smith",
+                      role: "Producer"
+                    }
+                  ]
+                  description: "The Academy Award for Best Picture"
+                  imageUrl: "https://example.com/image.jpg"
+                  sourceUrl: "https://example.com/source"
+      responses:
+        201:
+          description: Award created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AwardResponse'
+              example:
+                success: true
+                message: "Award created successfully"
+                data:
+                  _id: "65f1a234b876a123b45c6789"
+                  name: "Academy Award"
+                  organization: "Academy of Motion Picture Arts and Sciences"
+                  category: "Best Picture"
+                  year: 2024
+                  ceremony: "96th Academy Awards"
+                  isNomination: true
+                  isWinner: false
+                  movie:
+                    _id: "65f1a234b876a123b45c6789"
+                    title: "Example Movie"
+                    releaseDate: "2024-01-01T00:00:00.000Z"
+                    recipients: [
+                      {
+                        name: "John Smith",
+                        role: "Producer"
+                      }
+                    ]
+                    description: "The Academy Award for Best Picture"
+                    imageUrl: "https://example.com/image.jpg"
+                    sourceUrl: "https://example.com/source"
+                    createdAt: "2024-01-01T00:00:00.000Z"
+                    updatedAt: "2024-01-01T00:00:00.000Z"
+
+        400:
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Invalid request data"
+                  error:
+                    type: object
+                    properties:
+                      details:
+                        type: string
+                        example: "Validation error in request body"
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Internal server error"
+
+  /api/v1/awards/{awardId}:
+    put:
+      tags:
+        - Awards
+      summary: Update an award
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: awardId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AwardUpdateInput'
+      responses:
+        200:
+          description: Award updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AwardResponse'
+
+  /api/v1/awards/search:
+    get:
+      tags:
+        - Awards
+      summary: Search awards
+      parameters:
+        - name: organization
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: isWinner
+          in: query
+          schema:
+            type: boolean
+        - name: recipient
+          in: query
+          schema:
+            type: string
+        - name: movie
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: Awards retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AwardListResponse'
+
+  /api/v1/awards/by-year:
+    get:
+      tags:
+        - Awards
+      summary: Get awards by year
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: organization
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Awards retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AwardListResponse'
+
+  /api/v1/awards/winners:
+    get:
+      tags:
+        - Awards
+      summary: Get award winners
+      parameters:
+        - name: organization
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Award winners retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AwardListResponse'
+
+  /api/v1/awards/movies/{movieId}:
+    get:
+      tags:
+        - Awards
+      summary: Get awards for a movie
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Movie awards retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AwardListResponse'
+
+components:
+  schemas:
+    Earnings:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+          default: USD
+      required:
+        - amount
+
+    BoxOfficeInput:
+      type: object
+      properties:
+        openingWeekend:
+          type: object
+          properties:
+            domestic:
+              $ref: '#/components/schemas/Earnings'
+            international:
+              $ref: '#/components/schemas/Earnings'
+            worldwide:
+              $ref: '#/components/schemas/Earnings'
+            date:
+              type: string
+              format: date-time
+          required:
+            - domestic
+            - international
+            - worldwide
+            - date
+        totalEarnings:
+          type: object
+          properties:
+            domestic:
+              $ref: '#/components/schemas/Earnings'
+            international:
+              $ref: '#/components/schemas/Earnings'
+            worldwide:
+              $ref: '#/components/schemas/Earnings'
+        budget:
+          type: object
+          properties:
+            production:
+              $ref: '#/components/schemas/Earnings'
+            marketing:
+              $ref: '#/components/schemas/Earnings'
+        weeklyEarnings:
+          type: array
+          items:
+            type: object
+            properties:
+              week:
+                type: integer
+              startDate:
+                type: string
+                format: date-time
+              endDate:
+                type: string
+                format: date-time
+              domestic:
+                $ref: '#/components/schemas/Earnings'
+              international:
+                $ref: '#/components/schemas/Earnings'
+              worldwide:
+                $ref: '#/components/schemas/Earnings'
+
+    BoxOfficeUpdateInput:
+      type: object
+      properties:
+        totalEarnings:
+          type: object
+          properties:
+            domestic:
+              $ref: '#/components/schemas/Earnings'
+            international:
+              $ref: '#/components/schemas/Earnings'
+            worldwide:
+              $ref: '#/components/schemas/Earnings'
+        weeklyEarnings:
+          type: array
+          items:
+            type: object
+            properties:
+              week:
+                type: integer
+              startDate:
+                type: string
+                format: date-time
+              endDate:
+                type: string
+                format: date-time
+              domestic:
+                $ref: '#/components/schemas/Earnings'
+              international:
+                $ref: '#/components/schemas/Earnings'
+              worldwide:
+                $ref: '#/components/schemas/Earnings'
+
+    BoxOffice:
+      allOf:
+        - $ref: '#/components/schemas/BoxOfficeInput'
+        - type: object
+          properties:
+            _id:
+              type: string
+            movieId:
+              $ref: '#/components/schemas/Movie'
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    AwardInput:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: "^[a-zA-Z0-9\\s\\-.,\"'()]+$"
+          example: "Academy Award"
+          description: "Award name - alphanumeric characters, spaces, and basic punctuation only"
+        organization:
+          type: string
+          pattern: "^[a-zA-Z0-9\\s\\-.,\"'()]+$"
+          example: "Academy of Motion Picture Arts and Sciences"
+          description: "Organization name - alphanumeric characters, spaces, and basic punctuation only"
+        category:
+          type: string
+          pattern: "^[a-zA-Z0-9\\s\\-.,\"'()]+$"
+          example: "Best Picture"
+          description: "Award category - alphanumeric characters, spaces, and basic punctuation only"
+        year:
+          type: integer
+          minimum: 1900
+          maximum: 2100
+          example: 2024
+        ceremony:
+          type: string
+          pattern: "^[a-zA-Z0-9\\s\\-.,\"'()]+$"  
+          example: "96th Academy Awards"
+          description: "Ceremony name - alphanumeric characters, spaces, and basic punctuation only"
+        isNomination:
+          type: boolean
+          default: true
+          example: true
+        isWinner:
+          type: boolean
+          default: false
+          example: false
+        movie:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+          example: "65f1a234b876a123b45c6789"
+          description: "MongoDB ObjectId of the movie"
+        recipients:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - role
+            properties:
+              name:
+                type: string
+                pattern: "^[a-zA-Z0-9\\s\\-.,\"'()]+$" 
+                example: "John Smith"
+                description: "Recipient name - alphanumeric characters, spaces, and basic punctuation only"
+              role:
+                type: string
+                pattern: "^[a-zA-Z0-9\\s\\-.,\"'()]+$" 
+                example: "Producer"
+                description: "Recipient role - alphanumeric characters, spaces, and basic punctuation only"
+          minItems: 1
+        description:
+          type: string
+          pattern: "^[a-zA-Z0-9\\s\\-.,\"'()]+$" 
+          example: "The Academy Award for Best Picture"
+          description: "Award description - alphanumeric characters, spaces, and basic punctuation only"
+        imageUrl:
+          type: string
+          format: uri
+          pattern: "^https?:\\/\\/.+" 
+          example: "https://example.com/image.jpg"
+        sourceUrl:
+          type: string
+          format: uri
+          pattern: "^https?:\\/\\/.+" 
+          example: "https://example.com/source"
+      required:
+        - name
+        - organization
+        - category
+        - year
+        - ceremony
+        - recipients
+      additionalProperties: false
+
+    AwardUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+        organization:
+          type: string
+        category:
+          type: string
+        year:
+          type: integer
+        ceremony:
+          type: string
+        isNomination:
+          type: boolean
+        isWinner:
+          type: boolean
+        movie:
+          type: string
+        recipients:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              role:
+                type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+        sourceUrl:
+          type: string
+          format: uri
+
+    Award:
+      allOf:
+        - $ref: '#/components/schemas/AwardInput'
+        - type: object
+          properties:
+            _id:
+              type: string
+            movie:
+              $ref: '#/components/schemas/Movie'
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    Movie:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        releaseDate:
+          type: string
+          format: date-time
+
+    BoxOfficeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/BoxOffice'
+
+    BoxOfficeListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoxOffice'
+
+    AwardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Award'
+
+    AwardListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/Award'
+            total:
+              type: integer
+            page:
+              type: integer
+            totalPages:
+              type: integer
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
