@@ -14,13 +14,12 @@ const configureApp = (app) => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-      // Setup Swagger
+  // Setup Swagger
   setupSwagger(app);
 
-  console.log('Setting up rate limiter');
   configureBodyParser(app);
-  console.log('Setting up rate limiter');
 
+  console.log('=== Award Route Accessed ===');
   // Request logging
   app.use((req, res, next) => {
     logger.info(`${req.method} ${req.originalUrl}`);

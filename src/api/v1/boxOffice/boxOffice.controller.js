@@ -1,4 +1,4 @@
-// src/api/v1/boxOffice/boxOffice.controller.js
+// src/api/v1/box-office/boxOffice.controller.js
 const { catchAsync } = require('../../../utils/catchAsync');
 const { ApiResponse } = require('../../../utils/apiResponse');
 const boxOfficeService = require('./boxOffice.service');
@@ -6,7 +6,7 @@ const boxOfficeService = require('./boxOffice.service');
 const createBoxOffice = catchAsync(async (req, res) => {
   const { movieId } = req.params;
   const boxOffice = await boxOfficeService.createBoxOffice(movieId, req.body);
-
+  
   return ApiResponse.success(res, {
     statusCode: 201,
     message: 'Box office data created successfully',
@@ -24,9 +24,9 @@ const updateBoxOffice = catchAsync(async (req, res) => {
   });
 });
 
-const getBoxOfficeByMovie = catchAsync(async (req, res) => {
+const getBoxOffice = catchAsync(async (req, res) => {
   const { movieId } = req.params;
-  const boxOffice = await boxOfficeService.getBoxOfficeByMovie(movieId);
+  const boxOffice = await boxOfficeService.getBoxOffice(movieId);
 
   return ApiResponse.success(res, {
     message: 'Box office data retrieved successfully',
@@ -35,12 +35,12 @@ const getBoxOfficeByMovie = catchAsync(async (req, res) => {
 });
 
 const getTopGrossing = catchAsync(async (req, res) => {
-  const { period = 'all-time', limit = 10 } = req.query;
-  const boxOffice = await boxOfficeService.getTopGrossing(period, parseInt(limit));
+  const { period, limit } = req.query;
+  const boxOfficeData = await boxOfficeService.getTopGrossing(period, parseInt(limit));
 
   return ApiResponse.success(res, {
     message: 'Top grossing movies retrieved successfully',
-    data: boxOffice
+    data: boxOfficeData
   });
 });
 
@@ -56,7 +56,7 @@ const getWeeklyTrends = catchAsync(async (req, res) => {
 module.exports = {
   createBoxOffice,
   updateBoxOffice,
-  getBoxOfficeByMovie,
+  getBoxOffice,
   getTopGrossing,
   getWeeklyTrends
 };

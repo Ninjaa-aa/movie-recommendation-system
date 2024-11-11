@@ -9,21 +9,59 @@ const earningsSchema = new mongoose.Schema({
   },
   currency: {
     type: String,
+    enum: ['USD', 'EUR', 'GBP', 'JPY', 'CNY'],
     default: 'USD'
   }
-});
+}, { _id: false });
+
+const weeklyEarningsSchema = new mongoose.Schema({
+  week: {
+    type: Number,
+    required: true,
+    min: 1
+  },
+  startDate: {
+    type: Date,
+    required: true
+  },
+  endDate: {
+    type: Date,
+    required: true
+  },
+  domestic: {
+    type: earningsSchema,
+    required: true
+  },
+  international: {
+    type: earningsSchema,
+    required: true
+  },
+  worldwide: {
+    type: earningsSchema,
+    required: true
+  }
+}, { _id: false });
 
 const boxOfficeSchema = new mongoose.Schema({
-  movieId: {
+  movie: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Movie',
     required: true,
-    unique: true
+    index: true
   },
   openingWeekend: {
-    domestic: earningsSchema,
-    international: earningsSchema,
-    worldwide: earningsSchema,
+    domestic: {
+      type: earningsSchema,
+      required: true
+    },
+    international: {
+      type: earningsSchema,
+      required: true
+    },
+    worldwide: {
+      type: earningsSchema,
+      required: true
+    },
     date: {
       type: Date,
       required: true
@@ -32,45 +70,21 @@ const boxOfficeSchema = new mongoose.Schema({
   totalEarnings: {
     domestic: earningsSchema,
     international: earningsSchema,
-    worldwide: earningsSchema,
-    lastUpdated: {
-      type: Date,
-      default: Date.now
-    }
+    worldwide: earningsSchema
   },
   budget: {
     production: earningsSchema,
     marketing: earningsSchema
   },
-  weeklyEarnings: [{
-    week: {
-      type: Number,
-      required: true
-    },
-    startDate: {
-      type: Date,
-      required: true
-    },
-    endDate: {
-      type: Date,
-      required: true
-    },
-    domestic: earningsSchema,
-    international: earningsSchema,
-    worldwide: earningsSchema
-  }],
-  isActive: {
-    type: Boolean,
-    default: true
-  }
+  weeklyEarnings: [weeklyEarningsSchema]
 }, {
   timestamps: true
 });
 
-// Indexes for faster queries
-boxOfficeSchema.index({ 'movieId': 1, 'isActive': 1 });
-boxOfficeSchema.index({ 'totalEarnings.worldwide.amount': -1 });
+// Indexes
 boxOfficeSchema.index({ 'openingWeekend.worldwide.amount': -1 });
+boxOfficeSchema.index({ 'totalEarnings.worldwide.amount': -1 });
+boxOfficeSchema.index({ 'openingWeekend.date': -1 });
 
 const BoxOffice = mongoose.model('BoxOffice', boxOfficeSchema);
 module.exports = BoxOffice;

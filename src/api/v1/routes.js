@@ -33,14 +33,7 @@ router.use('/releases', releaseRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/news', newsRoutes);
 router.use('/box-office', boxOfficeRoutes);
-router.use('/awards', (req, res, next) => {
-    console.log('=== Award Route Accessed ===');
-    console.log('Method:', req.method);
-    console.log('Path:', req.path);
-    console.log('Body:', req.body);
-    console.log('Query:', req.query);
-    next();  // Ensure next() is called to pass control to the next middleware
-}, awardRoutes);
+router.use('/awards', awardRoutes);
 
 
 module.exports = router;

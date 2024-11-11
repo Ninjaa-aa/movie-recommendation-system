@@ -1,0 +1,417 @@
+openapi: 3.0.0
+info:
+  title: Box Office API
+  version: 1.0.0
+  description: API endpoints for movie box office data
+
+paths:
+  /api/v1/box-office/top-grossing:
+    get:
+      tags:
+        - Box Office
+      summary: Get top grossing movies
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [all-time, week, month, year]
+            default: all-time
+          description: Time period for top grossing movies
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Number of results to return
+      responses:
+        200:
+          description: Top grossing movies retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxOfficeListResponse'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/box-office/weekly-trends:
+    get:
+      tags:
+        - Box Office
+      summary: Get weekly box office trends
+      responses:
+        200:
+          description: Weekly trends retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxOfficeListResponse'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/box-office/movies/{movieId}/box-office:
+    post:
+      tags:
+        - Box Office
+      summary: Create box office data for a movie
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoxOfficeInput'
+      responses:
+        201:
+          description: Box office data created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxOfficeResponse'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+    put:
+      tags:
+        - Box Office
+      summary: Update box office data for a movie
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoxOfficeUpdateInput'
+      responses:
+        200:
+          description: Box office data updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxOfficeResponse'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+    get:
+      tags:
+        - Box Office
+      summary: Get box office data for a movie
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        200:
+          description: Box office data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxOfficeResponse'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+components:
+  schemas:
+    Earnings:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: float
+          minimum: 0
+          example: 1000000.50
+        currency:
+          type: string
+          enum: [USD, EUR, GBP, JPY, CNY]
+          default: USD
+          example: USD
+      required:
+        - amount
+      additionalProperties: false
+
+    BoxOfficeInput:
+      type: object
+      properties:
+        openingWeekend:
+          type: object
+          properties:
+            domestic:
+              $ref: '#/components/schemas/Earnings'
+            international:
+              $ref: '#/components/schemas/Earnings'
+            worldwide:
+              $ref: '#/components/schemas/Earnings'
+            date:
+              type: string
+              format: date-time
+          required:
+            - domestic
+            - international
+            - worldwide
+            - date
+          additionalProperties: false
+        totalEarnings:
+          type: object
+          properties:
+            domestic:
+              $ref: '#/components/schemas/Earnings'
+            international:
+              $ref: '#/components/schemas/Earnings'
+            worldwide:
+              $ref: '#/components/schemas/Earnings'
+          additionalProperties: false
+        budget:
+          type: object
+          properties:
+            production:
+              $ref: '#/components/schemas/Earnings'
+            marketing:
+              $ref: '#/components/schemas/Earnings'
+          additionalProperties: false
+        weeklyEarnings:
+          type: array
+          items:
+            type: object
+            properties:
+              week:
+                type: integer
+                minimum: 1
+              startDate:
+                type: string
+                format: date-time
+              endDate:
+                type: string
+                format: date-time
+              domestic:
+                $ref: '#/components/schemas/Earnings'
+              international:
+                $ref: '#/components/schemas/Earnings'
+              worldwide:
+                $ref: '#/components/schemas/Earnings'
+            required:
+              - week
+              - startDate
+              - endDate
+              - domestic
+              - international
+              - worldwide
+            additionalProperties: false
+      required:
+        - openingWeekend
+      additionalProperties: false
+
+    BoxOfficeUpdateInput:
+      type: object
+      properties:
+        totalEarnings:
+          type: object
+          properties:
+            domestic:
+              $ref: '#/components/schemas/Earnings'
+            international:
+              $ref: '#/components/schemas/Earnings'
+            worldwide:
+              $ref: '#/components/schemas/Earnings'
+          additionalProperties: false
+        weeklyEarnings:
+          type: array
+          items:
+            type: object
+            properties:
+              week:
+                type: integer
+                minimum: 1
+              startDate:
+                type: string
+                format: date-time
+              endDate:
+                type: string
+                format: date-time
+              domestic:
+                $ref: '#/components/schemas/Earnings'
+              international:
+                $ref: '#/components/schemas/Earnings'
+              worldwide:
+                $ref: '#/components/schemas/Earnings'
+            required:
+              - week
+              - startDate
+              - endDate
+              - domestic
+              - international
+              - worldwide
+            additionalProperties: false
+      minProperties: 1
+      additionalProperties: false
+
+    BoxOffice:
+      allOf:
+        - $ref: '#/components/schemas/BoxOfficeInput'
+        - type: object
+          properties:
+            _id:
+              type: string
+              pattern: '^[0-9a-fA-F]{24}$'
+            movie:
+              $ref: '#/components/schemas/Movie'
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    Movie:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        title:
+          type: string
+          pattern: "^[a-zA-Z0-9\\s\\-.,\"'()]+$"
+        releaseDate:
+          type: string
+          format: date-time
+      required:
+        - _id
+        - title
+      additionalProperties: false
+
+    BoxOfficeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/BoxOffice'
+      required:
+        - success
+        - message
+        - data
+
+    BoxOfficeListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoxOffice'
+      required:
+        - success
+        - message
+        - data
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Invalid request data"
+              error:
+                type: object
+                properties:
+                  details:
+                    type: string
+                    example: "Validation error in request body"
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Authentication required"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Resource not found"
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Internal server error"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

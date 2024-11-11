@@ -1,0 +1,854 @@
+openapi: 3.0.0
+info:
+  title: Community Discussion API
+  version: 1.0.0
+  description: API endpoints for movie community discussions, forums, topics, and posts
+
+paths:
+  /api/v1/community/forums:
+    post:
+      tags:
+        - Forums
+      summary: Create a new forum
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForumInput'
+      responses:
+        201:
+          description: Forum created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForumResponse'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+    
+    get:
+      tags:
+        - Forums
+      summary: List forums
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [MOVIES, ACTORS, DIRECTORS, GENRES, GENERAL]
+        - name: movie
+          in: query
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        - name: search
+          in: query
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 100
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        200:
+          description: Forums retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForumListResponse'
+
+  /api/v1/community/forums/{forumId}:
+    get:
+      tags:
+        - Forums
+      summary: Get forum details
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        200:
+          description: Forum retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForumResponse'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Forums
+      summary: Update forum
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForumUpdateInput'
+      responses:
+        200:
+          description: Forum updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForumResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Forums
+      summary: Delete forum
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        200:
+          description: Forum deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/community/forums/{forumId}/topics:
+    post:
+      tags:
+        - Topics
+      summary: Create new topic
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicInput'
+      responses:
+        201:
+          description: Topic created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+    get:
+      tags:
+        - Topics
+      summary: List topics in forum
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        - name: search
+          in: query
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 100
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: author
+          in: query
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        200:
+          description: Topics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicListResponse'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/community/topics/{topicId}/posts:
+    post:
+      tags:
+        - Posts
+      summary: Create new post
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: topicId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostInput'
+      responses:
+        201:
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+    get:
+      tags:
+        - Posts
+      summary: List posts in topic
+      parameters:
+        - name: topicId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        200:
+          description: Posts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostListResponse'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/community/posts/{postId}/like:
+    post:
+      tags:
+        - Posts
+      summary: Toggle like on post
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        200:
+          description: Like toggled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    ForumInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: "Marvel Movies Discussion"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: "Forum for discussing all Marvel movies"
+        category:
+          type: string
+          enum: [MOVIES, ACTORS, DIRECTORS, GENRES, GENERAL]
+          example: "MOVIES"
+        movie:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+          example: "507f1f77bcf86cd799439011"
+        moderators:
+          type: array
+          items:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      required:
+        - name
+        - description
+        - category
+
+    ForumUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description:
+          type: string
+          minLength: 10
+          maxLength: 500
+        moderators:
+          type: array
+          items:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        isActive:
+          type: boolean
+      minProperties: 1
+
+    TopicInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 5
+          maxLength: 200
+          example: "Spider-Man: No Way Home Discussion"
+        content:
+          type: string
+          minLength: 20
+          maxLength: 10000
+          example: "What did you think about the latest Spider-Man movie?"
+        tags:
+          type: array
+          items:
+            type: string
+            minLength: 2
+            maxLength: 30
+          maxItems: 5
+          example: ["marvel", "spider-man", "mcu"]
+      required:
+        - title
+        - content
+
+    PostInput:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          example: "Great movie! The action scenes were amazing!"
+        parentPost:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        mentions:
+          type: array
+          items:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+          maxItems: 5
+      required:
+        - content
+
+    Attachment:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [IMAGE, VIDEO, LINK]
+        url:
+          type: string
+          format: uri
+        caption:
+          type: string
+          maxLength: 200
+      required:
+        - type
+        - url
+
+    UserRef:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        name:
+          type: string
+        avatar:
+          type: string
+          format: uri
+
+    Forum:
+      allOf:
+        - $ref: '#/components/schemas/ForumInput'
+        - type: object
+          properties:
+            _id:
+              type: string
+              pattern: '^[0-9a-fA-F]{24}$'
+            slug:
+              type: string
+            moderators:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserRef'
+            totalTopics:
+              type: integer
+            totalPosts:
+              type: integer
+            lastPost:
+              $ref: '#/components/schemas/PostRef'
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    Topic:
+      allOf:
+        - $ref: '#/components/schemas/TopicInput'
+        - type: object
+          properties:
+            _id:
+              type: string
+              pattern: '^[0-9a-fA-F]{24}$'
+            slug:
+              type: string
+            author:
+              $ref: '#/components/schemas/UserRef'
+            forum:
+              $ref: '#/components/schemas/ForumRef'
+            isPinned:
+              type: boolean
+            isLocked:
+              type: boolean
+            views:
+              type: integer
+            totalReplies:
+              type: integer
+            lastReply:
+              $ref: '#/components/schemas/PostRef'
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    Post:
+      allOf:
+        - $ref: '#/components/schemas/PostInput'
+        - type: object
+          properties:
+            _id:
+              type: string
+              pattern: '^[0-9a-fA-F]{24}$'
+            author:
+              $ref: '#/components/schemas/UserRef'
+            topic:
+              $ref: '#/components/schemas/TopicRef'
+            parentPost:
+              $ref: '#/components/schemas/PostRef'
+            mentions:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserRef'
+            isEdited:
+              type: boolean
+            editHistory:
+              type: array
+              items:
+                type: object
+                properties:
+                  content:
+                    type: string
+                  editedAt:
+                    type: string
+                    format: date-time
+            likes:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserRef'
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    ForumRef:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        name:
+          type: string
+        category:
+          type: string
+
+    TopicRef:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        title:
+          type: string
+
+    PostRef:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        content:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserRef'
+
+    ForumResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Forum'
+
+    ForumListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/Forum'
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            totalPages:
+              type: integer
+
+    TopicResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Topic retrieved successfully"
+        data:
+          $ref: '#/components/schemas/Topic'
+
+    TopicListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Topics retrieved successfully"
+        data:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/Topic'
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 20
+            total:
+              type: integer
+              example: 50
+            totalPages:
+              type: integer
+              example: 3
+
+    PostResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Post created successfully"
+        data:
+          $ref: '#/components/schemas/Post'
+
+    PostListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Posts retrieved successfully"
+        data:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/Post'
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 20
+            total:
+              type: integer
+              example: 100
+            totalPages:
+              type: integer
+              example: 5
+
+    LikeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Post liked successfully"
+        data:
+          type: object
+          properties:
+            liked:
+              type: boolean
+              example: true
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Invalid request data"
+              error:
+                type: object
+                properties:
+                  details:
+                    type: string
+                    example: "Validation error in request body"
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Authentication required"
+
+    Forbidden:
+      description: Permission denied
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "You do not have permission to perform this action"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Resource not found"
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Internal server error"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+tags:
+  - name: Forums
+    description: Forum management endpoints
+  - name: Topics
+    description: Topic management endpoints
+  - name: Posts
+    description: Post management endpoints
+
+x-examples:
+  createForumExample:
+    summary: Create a new forum
+    value:
+      name: "Marvel Movies Discussion"
+      description: "A place to discuss all Marvel movies"
+      category: "MOVIES"
+      movie: "507f1f77bcf86cd799439011"
+      moderators: ["507f1f77bcf86cd799439012"]
+
+  createTopicExample:
+    summary: Create a new topic
+    value:
+      title: "Spider-Man: No Way Home Discussion"
+      content: "What did everyone think about the latest Spider-Man movie?"
+      tags: ["marvel", "spider-man", "mcu"]
+
+  createPostExample:
+    summary: Create a new post
+    value:
+      content: "The movie was amazing! The special effects were incredible."
+      mentions: ["507f1f77bcf86cd799439013"]
+      attachments: [
+        {
+          type: "IMAGE",
+          url: "https://example.com/image.jpg",
+          caption: "My favorite scene"
+        }
+      ]

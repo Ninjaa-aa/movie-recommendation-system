@@ -31,15 +31,9 @@ const setupSwagger = (app) => {
     const searchSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/search.yaml'));
     const releaseNotificationSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/release-notification.yaml'));
     const newsSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/news.yaml'));
-    const boxOfficeAwardSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/box-office-award.yaml'));
-    // Log loaded paths for debugging
-    // logger.debug('Loaded paths:', {
-    //   auth: Object.keys(authSwagger.paths || {}),
-    //   users: Object.keys(usersSwagger.paths || {}),
-    //   wishlist: Object.keys(wishlistSwagger.paths || {}),
-    //   movies: Object.keys(moviesSwagger.paths || {}),
-    //   ratingReview: Object.keys(ratingReviewSwagger.paths || {})
-    // });
+    const boxOfficeSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/box-office.yaml'));
+    const awardSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/award.yaml'));
+    const communitySwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/community.yaml'));
 
     // Combine all swagger documents
     const swaggerDocument = {
@@ -67,7 +61,9 @@ const setupSwagger = (app) => {
         { name: 'Search', description: 'Search endpoints' },
         { name: 'Release Notifications', description: 'Release notification endpoints' },
         { name: 'News', description: 'News article endpoints' },
-        { name: 'Box Office', description: 'Box office and award endpoints' }
+        { name: 'Box Office', description: 'Box office endpoints' },
+        { name: 'Awards', description: 'Award endpoints' },
+        { name: 'Community', description: 'Community endpoints' }
       ],
       paths: {
         ...(authSwagger.paths || {}),
@@ -80,7 +76,9 @@ const setupSwagger = (app) => {
         ...(searchSwagger.paths || {}),
         ...(releaseNotificationSwagger.paths || {}),
         ...(newsSwagger.paths || {}),
-        ...(boxOfficeAwardSwagger.paths || {})
+        ...(boxOfficeSwagger.paths || {}),
+        ...(awardSwagger.paths || {}),
+        ...(communitySwagger.paths || {})
       },
       components: {
         securitySchemes: {
@@ -102,7 +100,9 @@ const setupSwagger = (app) => {
           ...(searchSwagger.components?.schemas || {}),
           ...(releaseNotificationSwagger.components?.schemas || {}),
           ...(newsSwagger.components?.schemas || {}),
-          ...(boxOfficeAwardSwagger.components?.schemas || {})
+          ...(boxOfficeSwagger.components?.schemas || {}),
+          ...(awardSwagger.components?.schemas || {}),
+          ...(communitySwagger.components?.schemas || {})
         },
         responses: {
           ...(baseSwagger.components?.responses || {}),
@@ -116,13 +116,12 @@ const setupSwagger = (app) => {
           ...(searchSwagger.components?.responses || {}),
           ...(releaseNotificationSwagger.components?.responses || {}),
           ...(newsSwagger.components?.responses || {}),
-          ...(boxOfficeAwardSwagger.components?.responses || {})
+          ...(boxOfficeSwagger.components?.responses || {}),
+          ...(awardSwagger.components?.responses || {}),
+          ...(communitySwagger.components?.responses || {})
         }
       }
     };
-
-    // // Log final paths for debugging
-    // logger.debug('Final swagger paths:', Object.keys(swaggerDocument.paths));
 
     // Disable helmet for swagger path
     app.use('/api-docs', (req, res, next) => {

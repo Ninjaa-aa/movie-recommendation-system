@@ -13,7 +13,10 @@ const parseField = (value, field) => {
     }
   } catch (e) {
     // If parsing fails, handle based on field type
-    if (['genre', 'trivia', 'goofs', 'tags', 'relatedMovies', 'relatedActors'].includes(field)) {
+    if ([
+      'genre', 'trivia', 'goofs', 'tags', 'relatedMovies', 'relatedActors',
+      'recipients' // Added for awards
+    ].includes(field)) {
       // For simple arrays, split by comma if it contains commas
       if (value.includes(',')) {
         return value.split(',').map(item => item.trim());
@@ -43,6 +46,11 @@ exports.validate = (schema) => {
           'relatedMovies', 
           'relatedActors', 
           'source',
+          // Award related fields
+          'recipients',
+          'ceremony',
+          'presentedBy',
+          'acceptedBy',
           // Any other array or object fields
           'keywords',
           'awards',
@@ -56,7 +64,7 @@ exports.validate = (schema) => {
             // Ensure arrays for specific fields even after parsing
             if (!Array.isArray(req.body[field]) && 
                 ['genre', 'trivia', 'goofs', 'tags', 'relatedMovies', 
-                 'relatedActors', 'keywords'].includes(field)) {
+                 'relatedActors', 'keywords', 'recipients'].includes(field)) {
               req.body[field] = [req.body[field]];
             }
           }
@@ -71,13 +79,49 @@ exports.validate = (schema) => {
           }
         }
 
-        if (req.body.soundtrack && typeof req.body.soundtrack === 'string') {
+        // Special handling for award recipients
+        if (req.body.recipients && typeof req.body.recipients === 'string') {
           try {
-            req.body.soundtrack = JSON.parse(req.body.soundtrack);
+            req.body.recipients = JSON.parse(req.body.recipients);
+            // Ensure each recipient has required fields
+            if (Array.isArray(req.body.recipients)) {
+              req.body.recipients = req.body.recipients.map(recipient => {
+                if (typeof recipient === 'string') {
+                  return { name: recipient, role: 'Unspecified' };
+                }
+                return recipient;
+              });
+            }
           } catch (e) {
-            console.error('Soundtrack parsing error:', e);
+            console.error('Recipients parsing error:', e);
+            // If parsing fails, try to create a basic recipient structure
+            if (typeof req.body.recipients === 'string') {
+              req.body.recipients = [{
+                name: req.body.recipients,
+                role: 'Unspecified'
+              }];
+            }
           }
         }
+
+        // Handle dates
+        if (req.body.ceremonyDate && typeof req.body.ceremonyDate === 'string') {
+          req.body.ceremonyDate = new Date(req.body.ceremonyDate);
+        }
+
+        // Convert year to number if it's a string
+        if (req.body.year && typeof req.body.year === 'string') {
+          req.body.year = parseInt(req.body.year, 10);
+        }
+
+        // Convert boolean fields
+        ['isWinner', 'isNomination', 'isActive'].forEach(field => {
+          if (req.body[field] !== undefined) {
+            if (typeof req.body[field] === 'string') {
+              req.body[field] = req.body[field].toLowerCase() === 'true';
+            }
+          }
+        });
       }
 
       // Validate request parts
@@ -126,11 +170,11 @@ exports.validate = (schema) => {
   };
 };
 
-// Specific validation for ratings
+// Keep existing rating and review validation...
 exports.validateRating = (req, res, next) => {
   const schema = Joi.object({
     rating: Joi.number().min(1).max(5).required(),
-    comment: Joi.string().max(500) // Optional comment with rating
+    comment: Joi.string().max(500)
   });
 
   const { error } = schema.validate(req.body);
@@ -140,13 +184,12 @@ exports.validateRating = (req, res, next) => {
   next();
 };
 
-// Enhanced review validation
 exports.validateReview = (req, res, next) => {
   const schema = Joi.object({
     content: Joi.string().min(10).max(1000).required(),
-    title: Joi.string().max(100), // Optional review title
-    tags: Joi.array().items(Joi.string()), // Optional tags
-    spoilerAlert: Joi.boolean().default(false), // Spoiler warning
+    title: Joi.string().max(100),
+    tags: Joi.array().items(Joi.string()),
+    spoilerAlert: Joi.boolean().default(false),
     recommendation: Joi.string().valid('recommend', 'neutral', 'not_recommend')
   });
 

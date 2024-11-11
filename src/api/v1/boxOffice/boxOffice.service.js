@@ -1,4 +1,4 @@
-// src/api/v1/boxOffice/boxOffice.service.js
+// src/api/v1/box-office/boxOffice.service.js
 const BoxOffice = require('../../../models/boxOffice.model');
 const Movie = require('../../../models/movie.model');
 const ApiError = require('../../../utils/ApiError');
@@ -12,78 +12,44 @@ class BoxOfficeService {
         throw new ApiError(404, 'Movie not found');
       }
 
-      const existingBoxOffice = await BoxOffice.findOne({ movieId });
+      const existingBoxOffice = await BoxOffice.findOne({ movie: movieId });
       if (existingBoxOffice) {
         throw new ApiError(400, 'Box office data already exists for this movie');
       }
 
       const boxOffice = await BoxOffice.create({
-        movieId,
+        movie: movieId,
         ...boxOfficeData
       });
 
-      // Update movie stats
-      await movie.updateBoxOfficeStats();
-
-      return await boxOffice.populate('movieId', 'title releaseDate');
+      return await boxOffice.populate('movie', 'title releaseDate');
     } catch (error) {
       logger.error('Error creating box office data:', error);
-      throw new ApiError(500, 'Error creating box office data');
+      throw error instanceof ApiError ? error : new ApiError(500, 'Error creating box office data');
     }
   }
 
   async updateBoxOffice(movieId, updateData) {
     try {
-      const movie = await Movie.findById(movieId);
-      if (!movie) {
-        throw new ApiError(404, 'Movie not found');
-      }
-
-      const boxOffice = await BoxOffice.findOne({ movieId });
+      const boxOffice = await BoxOffice.findOne({ movie: movieId });
       if (!boxOffice) {
         throw new ApiError(404, 'Box office data not found');
-      }
-
-      // Update total earnings and set lastUpdated
-      if (updateData.totalEarnings) {
-        updateData.totalEarnings.lastUpdated = new Date();
-      }
-
-      // Add weekly earnings if provided
-      if (updateData.weeklyEarnings) {
-        boxOffice.weeklyEarnings = [
-          ...boxOffice.weeklyEarnings,
-          ...updateData.weeklyEarnings
-        ].sort((a, b) => a.week - b.week);
       }
 
       Object.assign(boxOffice, updateData);
       await boxOffice.save();
 
-      // Update movie stats
-      await movie.updateBoxOfficeStats();
-
-      // Update movie popularity
-      if (updateData.totalEarnings?.worldwide) {
-        await movie.save(); // This triggers the popularity calculation
-      }
-
-      return await boxOffice.populate('movieId', 'title releaseDate');
+      return await boxOffice.populate('movie', 'title releaseDate');
     } catch (error) {
       logger.error('Error updating box office data:', error);
-      throw new ApiError(500, 'Error updating box office data');
+      throw error instanceof ApiError ? error : new ApiError(500, 'Error updating box office data');
     }
   }
 
-  async getBoxOfficeByMovie(movieId) {
+  async getBoxOffice(movieId) {
     try {
-      const movie = await Movie.findById(movieId);
-      if (!movie) {
-        throw new ApiError(404, 'Movie not found');
-      }
-
-      const boxOffice = await BoxOffice.findOne({ movieId, isActive: true })
-        .populate('movieId', 'title releaseDate avgRating popularity');
+      const boxOffice = await BoxOffice.findOne({ movie: movieId })
+        .populate('movie', 'title releaseDate');
 
       if (!boxOffice) {
         throw new ApiError(404, 'Box office data not found');
@@ -92,32 +58,35 @@ class BoxOfficeService {
       return boxOffice;
     } catch (error) {
       logger.error('Error fetching box office data:', error);
-      throw new ApiError(500, 'Error fetching box office data');
+      throw error instanceof ApiError ? error : new ApiError(500, 'Error fetching box office data');
     }
   }
 
   async getTopGrossing(period = 'all-time', limit = 10) {
     try {
-      const query = { isActive: true };
+      let query = {};
+      const now = new Date();
 
-      if (period !== 'all-time') {
-        const startDate = new Date();
-        switch (period) {
-          case 'week':
-            startDate.setDate(startDate.getDate() - 7);
-            break;
-          case 'month':
-            startDate.setMonth(startDate.getMonth() - 1);
-            break;
-          case 'year':
-            startDate.setFullYear(startDate.getFullYear() - 1);
-            break;
-        }
-        query['openingWeekend.date'] = { $gte: startDate };
+      switch (period) {
+        case 'week':
+          query['openingWeekend.date'] = {
+            $gte: new Date(now.setDate(now.getDate() - 7))
+          };
+          break;
+        case 'month':
+          query['openingWeekend.date'] = {
+            $gte: new Date(now.setMonth(now.getMonth() - 1))
+          };
+          break;
+        case 'year':
+          query['openingWeekend.date'] = {
+            $gte: new Date(now.setFullYear(now.getFullYear() - 1))
+          };
+          break;
       }
 
       const boxOfficeData = await BoxOffice.find(query)
-        .populate('movieId', 'title releaseDate coverPhoto avgRating popularity')
+        .populate('movie', 'title releaseDate')
         .sort({ 'totalEarnings.worldwide.amount': -1 })
         .limit(limit);
 
@@ -130,38 +99,19 @@ class BoxOfficeService {
 
   async getWeeklyTrends() {
     try {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 7);
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      const trends = await BoxOffice.find({
-        isActive: true,
-        'weeklyEarnings.startDate': { $gte: startDate }
+      const weeklyTrends = await BoxOffice.find({
+        'weeklyEarnings.endDate': { $gte: oneWeekAgo }
       })
-      .populate('movieId', 'title releaseDate coverPhoto avgRating popularity')
+      .populate('movie', 'title releaseDate')
       .sort({ 'weeklyEarnings.worldwide.amount': -1 });
 
-      return trends;
+      return weeklyTrends;
     } catch (error) {
       logger.error('Error fetching weekly trends:', error);
       throw new ApiError(500, 'Error fetching weekly trends');
-    }
-  }
-
-  // Helper method to update movie stats after significant changes
-  async updateMovieStats(movieId) {
-    try {
-      const movie = await Movie.findById(movieId);
-      if (!movie) {
-        throw new ApiError(404, 'Movie not found');
-      }
-
-      await movie.updateBoxOfficeStats();
-      await movie.save();
-
-      return movie;
-    } catch (error) {
-      logger.error('Error updating movie stats:', error);
-      throw new ApiError(500, 'Error updating movie stats');
     }
   }
 }
