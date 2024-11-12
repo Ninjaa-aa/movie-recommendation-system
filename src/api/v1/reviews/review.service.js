@@ -3,7 +3,12 @@ const ApiError = require('../../../utils/ApiError');
 
 class ReviewService {
   async createReview(userId, movieId, content) {
-    const existingReview = await Review.findOne({ userId, movieId });
+    const existingReview = await Review.findOne({ 
+      userId, 
+      movieId,
+      isDeleted: { $ne: true }
+    });
+    
     if (existingReview) {
       throw new ApiError(400, 'You have already reviewed this movie');
     }
@@ -12,9 +17,34 @@ class ReviewService {
       userId,
       movieId,
       content,
-      isHighlighted: false, // Default value
-      likes: 0 // Default value
+      status: 'pending',  // Set initial status
+      isHighlighted: false,
+      likes: 0
     });
+  }
+
+  async reportReview(reviewId, userId, reason, description = '') {
+    const review = await Review.findById(reviewId);
+    if (!review) {
+      throw new ApiError(404, 'Review not found');
+    }
+
+    // Check if user has already reported this review
+    const existingReport = review.reports.find(
+      report => report.userId.toString() === userId.toString()
+    );
+    
+    if (existingReport) {
+      throw new ApiError(400, 'You have already reported this review');
+    }
+
+    review.reports.push({
+      userId,
+      reason,
+      description
+    });
+
+    return review.save();
   }
 
   async updateReview(userId, movieId, content) {

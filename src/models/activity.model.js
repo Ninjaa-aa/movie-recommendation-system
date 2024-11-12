@@ -5,55 +5,49 @@ const activitySchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: [
-      'MOVIE_VIEW', 
-      'MOVIE_SEARCH', 
-      'ACTOR_SEARCH', 
-      'REVIEW_CREATE',
-      'REVIEW_LIKE',
-      'WATCHLIST_ADD',
+      'MOVIE_VIEW',
       'RATING_ADD',
-      'FORUM_POST',
-      'FORUM_TOPIC'
+      'RATING_UPDATE',
+      'WATCHLIST_ADD',
+      'WATCHLIST_REMOVE',
+      'REVIEW_ADD',
+      'REVIEW_UPDATE',
+      'ACTOR_SEARCH',
+      'MOVIE_SEARCH',
+      'LOGIN',
+      'SIGNUP'
     ]
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    index: true
   },
   movie: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Movie'
+    ref: 'Movie',
+    index: true
   },
   actor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Actor'
-  },
-  review: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Review'
-  },
-  forumPost: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Post'
-  },
-  forumTopic: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Topic'
+    ref: 'Actor',
+    index: true
   },
   metadata: {
     type: mongoose.Schema.Types.Mixed
-  }
+  },
+  ipAddress: String,
+  userAgent: String
 }, {
   timestamps: true
 });
 
-// Indexes for analytics queries
+// Indexes
+activitySchema.index({ createdAt: -1 });
 activitySchema.index({ type: 1, createdAt: -1 });
-activitySchema.index({ user: 1, createdAt: -1 });
-activitySchema.index({ movie: 1, type: 1, createdAt: -1 });
-activitySchema.index({ actor: 1, type: 1, createdAt: -1 });
+activitySchema.index({ user: 1, type: 1 });
+activitySchema.index({ movie: 1, type: 1 });
+activitySchema.index({ actor: 1, type: 1 });
 
-const Activity = mongoose.model('Activity', activitySchema);
-
-module.exports = Activity;
+module.exports = mongoose.model('Activity', activitySchema);

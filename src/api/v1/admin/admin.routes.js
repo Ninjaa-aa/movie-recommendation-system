@@ -1,63 +1,35 @@
 // src/api/v1/admin/admin.routes.js
 const express = require('express');
 const { validate } = require('../../../middleware/validation.middleware');
-const adminValidation = require('./admin.validation');
-const adminController = require('./admin.controller');
-
+const { isAuth } = require('../../../middleware/auth.middleware');  // Import isAuth properly
 const { authorizeRoles } = require('../../../middleware/role.middleware');
+const adminController = require('./admin.controller');
+const adminValidation = require('./admin.validation');
+
 const router = express.Router();
 
-// Ensure all routes require admin privileges
+// Apply auth middleware to all routes
+router.use(isAuth);
+// Apply admin role check to all routes
 router.use(authorizeRoles('admin'));
 
-// Analytics Routes
+// Movie and Review Moderation
 router.get(
-  '/stats/overall',
-  validate(adminValidation.getStats),
-  adminController.getOverallStats
+  '/moderation',
+  adminController.getMovieModeration
 );
 
-router.get(
-  '/stats/users',
-  validate(adminValidation.getStats),
-  adminController.getUserStats
+router.patch(
+  '/moderation/review/:reviewId',
+  validate(adminValidation.moderateReview),
+  adminController.moderateReview
 );
 
+// Statistics
 router.get(
-  '/stats/movies',
-  validate(adminValidation.getStats),
-  adminController.getMovieStats
-);
-
-router.get(
-  '/stats/engagement',
-  validate(adminValidation.getStats),
-  adminController.getEngagementStats
-);
-
-router.get(
-  '/stats/genres',
-  validate(adminValidation.getStats),
-  adminController.getGenreStats
-);
-
-router.get(
-  '/stats/actors',
-  validate(adminValidation.getStats),
-  adminController.getActorStats
-);
-
-// Moderation Routes
-router.get(
-  '/moderation/queue',
-  validate(adminValidation.getModerationQueue),
-  adminController.getModerationQueue
-);
-
-router.post(
-  '/moderation/:itemId',
-  validate(adminValidation.moderateContent),
-  adminController.moderateContent
+  '/statistics',
+  validate(adminValidation.getStatistics),
+  adminController.getSiteStatistics
 );
 
 module.exports = router;

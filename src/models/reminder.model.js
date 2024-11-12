@@ -32,15 +32,18 @@ const reminderSchema = new mongoose.Schema({
       enum: ['email', 'dashboard']
     },
     sentAt: {
-      type: Date
+      type: Date,
+      default: Date.now
     }
   }]
 }, {
   timestamps: true
 });
 
+// Add indexes for better query performance
 reminderSchema.index({ userId: 1, movieId: 1, type: 1 });
 reminderSchema.index({ status: 1, reminderDate: 1 });
+reminderSchema.index({ userId: 1, status: 1 });
 
 const Reminder = mongoose.model('Reminder', reminderSchema);
 module.exports = Reminder;

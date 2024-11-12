@@ -5,7 +5,59 @@ const User = require('../../../models/user.model');
 const ApiError = require('../../../utils/ApiError');
 const emailService = require('../../../services/email.service');
 
+const broadcastService = require('../../../services/broadcast.service');
+
 class NotificationService {
+  async createNotification(notificationData) {
+    try {
+      // First broadcast to all users
+      await broadcastService.broadcastToAllUsers(notificationData);
+      
+      return { message: 'Notification created and broadcast successfully' };
+    } catch (error) {
+      throw new ApiError(500, 'Error creating and broadcasting notification');
+    }
+  }
+
+  // Updated processGenreNotifications to use broadcast
+  async processGenreNotifications() {
+    const lastCheck = new Date();
+    lastCheck.setDate(lastCheck.getDate() - 1);
+
+    const newMovies = await Movie.find({
+      createdAt: { $gte: lastCheck },
+      status: 'Coming Soon'
+    });
+
+    if (newMovies.length === 0) return;
+
+    // Create a single notification for broadcasting
+    const notificationData = {
+      type: 'genre_update',
+      title: 'New Movies Added',
+      message: `${newMovies.length} new movies have been added to our database!`,
+      movieId: newMovies[0]._id
+    };
+
+    // Broadcast to all users
+    await broadcastService.broadcastToAllUsers(notificationData);
+
+    // Send targeted emails to users based on their genre preferences
+    const users = await User.find({
+      favoriteGenres: { $exists: true, $ne: [] }
+    });
+
+    for (const user of users) {
+      const matchingMovies = newMovies.filter(movie =>
+        movie.genre.some(genre => user.favoriteGenres.includes(genre))
+      );
+
+      if (matchingMovies.length > 0) {
+        await emailService.sendGenreUpdateNotification(user, matchingMovies);
+      }
+    }
+  }
+  
   async getUserNotifications(userId, page = 1, limit = 10) {
     const notifications = await Notification.find({ userId })
       .sort({ createdAt: -1 })

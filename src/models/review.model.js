@@ -1,4 +1,22 @@
+// src/models/review.model.js
 const mongoose = require('mongoose');
+
+const reportSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  reason: {
+    type: String,
+    required: true
+  },
+  description: String,
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
 
 const reviewSchema = new mongoose.Schema({
   userId: {
@@ -18,11 +36,23 @@ const reviewSchema = new mongoose.Schema({
     minlength: 1,
     maxlength: 1000
   },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'removed'],
+    default: 'pending'
+  },
+  reports: [reportSchema],
+  rejectionReason: String,
+  removalReason: String,
   likes: {
     type: Number,
     default: 0
   },
   isHighlighted: {
+    type: Boolean,
+    default: false
+  },
+  isDeleted: {
     type: Boolean,
     default: false
   },
@@ -33,19 +63,24 @@ const reviewSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  moderatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  moderatedAt: Date
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
 
-// Create a compound index for userId and movieId to ensure unique reviews
+// Indexes
 reviewSchema.index({ userId: 1, movieId: 1 }, { unique: true });
-
-// Create indexes for common queries
 reviewSchema.index({ movieId: 1, createdAt: -1 });
 reviewSchema.index({ isHighlighted: 1, likes: -1, createdAt: -1 });
+reviewSchema.index({ status: 1, createdAt: -1 });
+reviewSchema.index({ 'reports.0': 1 }); // Index for reported reviews
 
 const Review = mongoose.model('Review', reviewSchema);
 

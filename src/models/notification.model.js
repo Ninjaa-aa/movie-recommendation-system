@@ -9,7 +9,14 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['release', 'trailer', 'genre_update'],
+    enum: [
+      'release',
+      'trailer',
+      'genre_update',
+      'reminder_set',
+      'reminder_cancelled',
+      'reminder_triggered'
+    ],
     required: true
   },
   title: {
@@ -41,6 +48,7 @@ const notificationSchema = new mongoose.Schema({
 });
 
 notificationSchema.index({ userId: 1, status: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, type: 1 });
 
 const Notification = mongoose.model('Notification', notificationSchema);
 module.exports = Notification;

@@ -1,16 +1,18 @@
-// src/api/v1/admin/analytics.service.js
-const { Activity } = require('../../../models/activity.model');
-const { Movie } = require('../../../models/movie.model');
-const { User } = require('../../../models/user.model');
-const { Review } = require('../../../models/review.model');
+const mongoose = require('mongoose');
+const Activity = require('../../../models/activity.model');
+const Movie = require('../../../models/movie.model');
+const User = require('../../../models/user.model');
+const Review = require('../../../models/review.model');
 const ApiError = require('../../../utils/ApiError');
+const logger = require('../../../utils/logger');
 
 class AnalyticsService {
   async getOverallStats(period = '30d') {
     try {
+      logger.debug('Getting overall stats for period:', period);
       const dateFilter = this.getDateFilter(period);
       
-      const stats = await Promise.all([
+      const [userStats, movieStats, engagementStats, genreStats, actorStats] = await Promise.all([
         this.getUserStats(dateFilter),
         this.getMovieStats(dateFilter),
         this.getEngagementStats(dateFilter),
@@ -18,193 +20,136 @@ class AnalyticsService {
         this.getActorStats(dateFilter)
       ]);
 
+      logger.debug('Overall stats retrieved successfully');
+
       return {
-        userStats: stats[0],
-        movieStats: stats[1],
-        engagementStats: stats[2],
-        genreStats: stats[3],
-        actorStats: stats[4]
+        userStats,
+        movieStats,
+        engagementStats,
+        genreStats,
+        actorStats
       };
     } catch (error) {
-      throw new ApiError(500, 'Error fetching analytics');
+      logger.error('Error in getOverallStats:', error);
+      throw new ApiError(500, 'Error fetching analytics: ' + error.message);
     }
   }
 
   async getUserStats(dateFilter) {
-    const [totalUsers, newUsers, activeUsers] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ createdAt: dateFilter }),
-      Activity.distinct('user', { createdAt: dateFilter }).count()
-    ]);
+    try {
+      const [totalUsers, newUsers, activeUsers] = await Promise.all([
+        User.countDocuments(),
+        User.countDocuments({ createdAt: dateFilter }),
+        Activity.distinct('user', { createdAt: dateFilter }).then(users => users.length)
+      ]);
 
-    return {
-      totalUsers,
-      newUsers,
-      activeUsers
-    };
+      return {
+        totalUsers,
+        newUsers,
+        activeUsers,
+        userGrowth: totalUsers > 0 ? (newUsers / totalUsers * 100).toFixed(2) : 0,
+        activeUserRate: totalUsers > 0 ? (activeUsers / totalUsers * 100).toFixed(2) : 0
+      };
+    } catch (error) {
+      logger.error('Error in getUserStats:', error);
+      throw new ApiError(500, 'Error fetching user statistics');
+    }
   }
 
   async getMovieStats(dateFilter) {
-    const pipeline = [
-      { $match: { createdAt: dateFilter } },
-      {
-        $facet: {
-          views: [
-            { $match: { type: 'MOVIE_VIEW' } },
-            { $group: { _id: '$movie', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-            { $limit: 10 },
-            {
-              $lookup: {
-                from: 'movies',
-                localField: '_id',
-                foreignField: '_id',
-                as: 'movie'
+    try {
+      const pipeline = [
+        { $match: { createdAt: dateFilter } },
+        {
+          $facet: {
+            views: [
+              { $match: { type: 'MOVIE_VIEW' } },
+              { $group: { _id: '$movie', count: { $sum: 1 } } },
+              { $sort: { count: -1 } },
+              { $limit: 10 },
+              {
+                $lookup: {
+                  from: 'movies',
+                  localField: '_id',
+                  foreignField: '_id',
+                  as: 'movie'
+                }
+              },
+              { $unwind: '$movie' },
+              {
+                $project: {
+                  _id: 0,
+                  movieId: '$movie._id',
+                  title: '$movie.title',
+                  views: '$count'
+                }
               }
-            },
-            { $unwind: '$movie' },
-            {
-              $project: {
-                _id: 0,
-                movie: { _id: 1, title: 1 },
-                views: '$count'
+            ],
+            ratings: [
+              { $match: { type: 'RATING_ADD' } },
+              { $group: { _id: '$movie', count: { $sum: 1 } } },
+              { $sort: { count: -1 } },
+              { $limit: 10 },
+              {
+                $lookup: {
+                  from: 'movies',
+                  localField: '_id',
+                  foreignField: '_id',
+                  as: 'movie'
+                }
+              },
+              { $unwind: '$movie' },
+              {
+                $project: {
+                  _id: 0,
+                  movieId: '$movie._id',
+                  title: '$movie.title',
+                  ratings: '$count'
+                }
               }
-            }
-          ],
-          ratings: [
-            { $match: { type: 'RATING_ADD' } },
-            { $group: { _id: '$movie', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-            { $limit: 10 },
-            {
-              $lookup: {
-                from: 'movies',
-                localField: '_id',
-                foreignField: '_id',
-                as: 'movie'
-              }
-            },
-            { $unwind: '$movie' },
-            {
-              $project: {
-                _id: 0,
-                movie: { _id: 1, title: 1 },
-                ratings: '$count'
-              }
-            }
-          ],
-          watchlist: [
-            { $match: { type: 'WATCHLIST_ADD' } },
-            { $group: { _id: '$movie', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-            { $limit: 10 },
-            {
-              $lookup: {
-                from: 'movies',
-                localField: '_id',
-                foreignField: '_id',
-                as: 'movie'
-              }
-            },
-            { $unwind: '$movie' },
-            {
-              $project: {
-                _id: 0,
-                movie: { _id: 1, title: 1 },
-                adds: '$count'
-              }
-            }
-          ]
+            ]
+          }
         }
-      }
-    ];
+      ];
 
-    const results = await Activity.aggregate(pipeline);
-    return results[0];
+      const results = await Activity.aggregate(pipeline);
+      return results[0];
+    } catch (error) {
+      logger.error('Error in getMovieStats:', error);
+      throw new ApiError(500, 'Error fetching movie statistics');
+    }
   }
 
   async getEngagementStats(dateFilter) {
-    const pipeline = [
-      { $match: { createdAt: dateFilter } },
-      {
-        $group: {
-          _id: '$type',
-          count: { $sum: 1 }
-        }
-      }
-    ];
-
-    const activityCounts = await Activity.aggregate(pipeline);
-    
-    return activityCounts.reduce((acc, { _id, count }) => {
-      acc[_id.toLowerCase()] = count;
-      return acc;
-    }, {});
-  }
-
-  async getGenreStats(dateFilter) {
-    const pipeline = [
-      { $match: { createdAt: dateFilter } },
-      {
-        $lookup: {
-          from: 'movies',
-          localField: 'movie',
-          foreignField: '_id',
-          as: 'movie'
-        }
-      },
-      { $unwind: '$movie' },
-      { $unwind: '$movie.genres' },
-      {
-        $group: {
-          _id: '$movie.genres',
-          views: {
-            $sum: { $cond: [{ $eq: ['$type', 'MOVIE_VIEW'] }, 1, 0] }
-          },
-          ratings: {
-            $sum: { $cond: [{ $eq: ['$type', 'RATING_ADD'] }, 1, 0] }
-          },
-          watchlist: {
-            $sum: { $cond: [{ $eq: ['$type', 'WATCHLIST_ADD'] }, 1, 0] }
+    try {
+      const pipeline = [
+        { $match: { createdAt: dateFilter } },
+        {
+          $group: {
+            _id: '$type',
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            type: '$_id',
+            count: 1
           }
         }
-      },
-      { $sort: { views: -1 } }
-    ];
+      ];
 
-    return await Activity.aggregate(pipeline);
-  }
-
-  async getActorStats(dateFilter) {
-    const pipeline = [
-      { $match: { type: 'ACTOR_SEARCH', createdAt: dateFilter } },
-      {
-        $group: {
-          _id: '$actor',
-          searchCount: { $sum: 1 }
-        }
-      },
-      { $sort: { searchCount: -1 } },
-      { $limit: 20 },
-      {
-        $lookup: {
-          from: 'actors',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'actor'
-        }
-      },
-      { $unwind: '$actor' },
-      {
-        $project: {
-          _id: 0,
-          actor: { _id: 1, name: 1, profilePhoto: 1 },
-          searchCount: 1
-        }
-      }
-    ];
-
-    return await Activity.aggregate(pipeline);
+      const results = await Activity.aggregate(pipeline);
+      
+      // Transform array to object for easier consumption
+      return results.reduce((acc, { type, count }) => {
+        acc[type.toLowerCase()] = count;
+        return acc;
+      }, {});
+    } catch (error) {
+      logger.error('Error in getEngagementStats:', error);
+      throw new ApiError(500, 'Error fetching engagement statistics');
+    }
   }
 
   getDateFilter(period) {
