@@ -20,7 +20,7 @@ const loadYamlFile = (filePath) => {
 const setupSwagger = (app) => {
   try {
     // Load Swagger documents with error handling
-    const baseSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/base.yaml'));
+    const baseSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger.yaml'));
     const authSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/auth.yaml'));
     const usersSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/users.yaml'));
     const wishlistSwagger = loadYamlFile(path.join(__dirname, '../docs/swagger/wishlist.yaml'));

@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const routes = require('../api/v1/routes');
+const routes = require('../routes/routes');
 const errorHandler = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
 const { setupSwagger } = require('./swagger');
