@@ -16,6 +16,7 @@ class RecommendationService {
     // Find movies with similar genres
     const similarMovies = await Movie.find({
       _id: { $ne: movieId },
+      name: { $ne: movie.name },
       genre: { $in: movie.genre },
       isActive: true // Only active movies
     })
