@@ -1,4 +1,3 @@
-# src/docs/swagger/users.yaml
 openapi: 3.0.0
 paths:
   /api/v1/users/profile:
@@ -6,7 +5,7 @@ paths:
       tags:
         - Users
       summary: Get user profile
-      description: Retrieve the current user's profile
+      description: Retrieve the current user's profile including preferences
       security:
         - BearerAuth: []
       responses:
@@ -25,7 +24,7 @@ paths:
       tags:
         - Users
       summary: Update user profile
-      description: Update the current user's profile information
+      description: Update the current user's profile information including password
       security:
         - BearerAuth: []
       requestBody:
@@ -37,6 +36,32 @@ paths:
       responses:
         '200':
           description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/users/preferences:
+    put:
+      tags:
+        - Users
+      summary: Update user preferences
+      description: Update user's movie preferences including genres, actors, and directors
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreferencesUpdate'
+      responses:
+        '200':
+          description: Preferences updated successfully
           content:
             application/json:
               schema:
@@ -67,6 +92,22 @@ paths:
             type: integer
             default: 10
           description: Number of items per page
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name or email
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [admin, user]
+          description: Filter by user role
+        - in: query
+          name: isActive
+          schema:
+            type: boolean
+          description: Filter by active status
       responses:
         '200':
           description: Users retrieved successfully
@@ -80,13 +121,35 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      
   schemas:
     ProfileUpdate:
       type: object
       properties:
         name:
           type: string
+          minLength: 2
+          maxLength: 50
           example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        currentPassword:
+          type: string
+          minLength: 6
+          description: Required when updating password
+          example: "oldpass123"
+        newPassword:
+          type: string
+          minLength: 6
+          description: New password
+          example: "newpass123"
         'profile.bio':
           type: string
           maxLength: 500
@@ -94,6 +157,65 @@ components:
         'profile.avatar':
           type: string
           example: "avatar-url.jpg"
+        emailNotifications:
+          type: boolean
+          example: true
+
+    PreferencesUpdate:
+      type: object
+      properties:
+        genres:
+          type: array
+          items:
+            type: string
+            enum: [Action, Comedy, Drama, Horror, Sci-Fi, Romance, Thriller, Documentary]
+          example: ["Action", "Comedy"]
+        addGenres:
+          type: array
+          items:
+            type: string
+            enum: [Action, Comedy, Drama, Horror, Sci-Fi, Romance, Thriller, Documentary]
+          example: ["Drama"]
+        removeGenres:
+          type: array
+          items:
+            type: string
+            enum: [Action, Comedy, Drama, Horror, Sci-Fi, Romance, Thriller, Documentary]
+          example: ["Horror"]
+        actors:
+          type: array
+          items:
+            type: string
+          example: ["Tom Hanks", "Morgan Freeman"]
+        addActors:
+          type: array
+          items:
+            type: string
+          example: ["Brad Pitt"]
+        removeActors:
+          type: array
+          items:
+            type: string
+          example: ["Tom Cruise"]
+        directors:
+          type: array
+          items:
+            type: string
+          example: ["Christopher Nolan"]
+        addDirectors:
+          type: array
+          items:
+            type: string
+          example: ["Steven Spielberg"]
+        removeDirectors:
+          type: array
+          items:
+            type: string
+          example: ["Michael Bay"]
+        ageRating:
+          type: string
+          enum: [G, PG, PG-13, R, NC-17]
+          example: "PG-13"
 
     ProfileResponse:
       allOf:
@@ -143,9 +265,19 @@ components:
                               items:
                                 type: string
                               example: ["Christopher Nolan"]
+                            ageRating:
+                              type: string
+                              enum: [G, PG, PG-13, R, NC-17]
+                              example: "PG-13"
                         avatar:
                           type: string
                           example: "avatar-url.jpg"
+                    emailNotifications:
+                      type: boolean
+                      example: true
+                    isActive:
+                      type: boolean
+                      example: true
 
     UsersListResponse:
       allOf:
@@ -158,27 +290,49 @@ components:
                 users:
                   type: array
                   items:
-                    type: object
-                    properties:
-                      _id:
-                        type: string
-                      email:
-                        type: string
-                      name:
-                        type: string
-                      role:
-                        type: string
-                        enum: [admin, user]
-                      isActive:
-                        type: boolean
+                    $ref: '#/components/schemas/UserBasic'
                 pagination:
                   type: object
                   properties:
                     total:
                       type: integer
+                      example: 100
                     pages:
                       type: integer
+                      example: 10
                     page:
                       type: integer
+                      example: 1
                     limit:
                       type: integer
+                      example: 10
+
+    UserBasic:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "5f9d4a3b9d3e2a1b3c5d8e7f"
+        email:
+          type: string
+          example: "user@example.com"
+        name:
+          type: string
+          example: "John Doe"
+        role:
+          type: string
+          enum: [admin, user]
+          example: "user"
+        isActive:
+          type: boolean
+          example: true
+
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation successful"

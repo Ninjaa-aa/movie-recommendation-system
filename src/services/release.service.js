@@ -1,13 +1,37 @@
-// src/api/v1/release/release.service.js
 const Movie = require('../models/movie.model');
 const User = require('../models/user.model');
 const Reminder = require('../models/reminder.model');
 const Notification = require('../models/notification.model');
-const emailService = require('./email.service');
+const emailService = require('../services/email.service');
 const logger = require('../utils/logger');
 const ApiError = require('../utils/ApiError');
 
 class ReleaseService {
+  async sendEmailToAllUsers(movie, reminderType) {
+    try {
+      // Get all active users
+      const users = await User.find({ isActive: true }, 'email name');
+      
+      for (const user of users) {
+        try {
+          if (reminderType === 'release') {
+            await emailService.sendReleaseReminder(user, movie);
+          } else {
+            await emailService.sendTrailerNotification(user, movie);
+          }
+          logger.info(`Email sent successfully to ${user.email} for movie ${movie.title}`);
+        } catch (error) {
+          logger.error(`Failed to send email to ${user.email}:`, error);
+          // Continue with next user even if one fails
+          continue;
+        }
+      }
+    } catch (error) {
+      logger.error('Error in sendEmailToAllUsers:', error);
+      throw error;
+    }
+  }
+
   async setReminder(userId, movieId, type) {
     let createdReminder = null;
     try {
@@ -56,7 +80,7 @@ class ReleaseService {
       // Create notification
       const notification = await Notification.create({
         userId,
-        type: type === 'release' ? 'release' : 'trailer', // Map to valid notification type
+        type: type === 'release' ? 'release' : 'trailer',
         title: `Reminder Set: ${movie.title}`,
         message: `You will be notified before "${movie.title}" ${type === 'release' ? 'releases' : 'trailer drops'}.`,
         movieId: movie._id,
@@ -64,24 +88,10 @@ class ReleaseService {
         isRead: false
       });
 
-      // Send email notification (non-critical operation)
-      try {
-        const emailResult = await emailService.sendReleaseReminder(user, movie);
-        
-        if (emailResult.success) {
-          await Reminder.findByIdAndUpdate(createdReminder._id, {
-            $push: {
-              notificationsSent: {
-                type: 'email',
-                sentAt: new Date()
-              }
-            }
-          });
-          logger.info(`Email sent successfully for reminder ${createdReminder._id}`);
-        }
-      } catch (emailError) {
-        logger.error('Error sending email:', emailError);
-      }
+      // Send email to all users (non-blocking)
+      this.sendEmailToAllUsers(movie, type).catch(error => {
+        logger.error('Error sending mass emails:', error);
+      });
 
       // Update reminder with dashboard notification record
       await Reminder.findByIdAndUpdate(createdReminder._id, {
@@ -121,6 +131,7 @@ class ReleaseService {
       throw new ApiError(500, 'Error setting reminder');
     }
   }
+
   
   async getUpcomingReleases(filters = {}, page = 1, limit = 10) {
     try {

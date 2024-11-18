@@ -1,114 +1,67 @@
+// src/config/jwt.js
 const jwt = require('jsonwebtoken');
-const { ApiError } = require('../utils/apiResponse');
+const ApiError = require('../utils/ApiError');
+const { ApiResponse } = require('../utils/apiResponse');
+const logger = require('../utils/logger');
 
-const debug = (message, data = '') => {
-  console.log(`[JWT Debug] ${message}`, data);
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30d';
+
+const generateToken = (userId) => {
+  return jwt.sign({ id: userId }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN
+  });
 };
 
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   try {
     // Get token from header
     const authHeader = req.headers.authorization;
-    debug('Auth Header:', authHeader);
+    logger.debug('[JWT Debug] Auth Header:', authHeader);
 
-    if (!authHeader) {
-      throw new ApiError(401, 'Authentication required. Please login.');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new ApiError(401, 'No token provided or invalid token format');
     }
 
-    // Check if token format is correct
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      throw new ApiError(401, 'Invalid token format. Use: Bearer <token>');
-    }
+    // Get token
+    const token = authHeader.split(' ')[1];
+    logger.debug('[JWT Debug] Extracted Token:', token.substring(0, 10) + '...');
 
-    const token = parts[1];
-    debug('Extracted Token:', token.substring(0, 10) + '...');
-
-    // Check JWT_SECRET
-    if (!process.env.JWT_SECRET) {
-      debug('JWT_SECRET is missing or empty');
-      throw new ApiError(500, 'JWT configuration error');
-    }
-
-    // Verify token
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET, {
-        algorithms: ['HS256']
-      });
-      
-      debug('Decoded token:', decoded);
+      // Verify token
+      const decoded = jwt.verify(token, JWT_SECRET);
+      logger.debug('[JWT Debug] Decoded token:', decoded);
 
-      // Check for either id or _id in the decoded token
-      const userId = decoded.id || decoded._id;
-      if (!userId) {
-        debug('Missing user ID in decoded token');
-        throw new ApiError(401, 'Invalid token structure');
-      }
-
-      // Set user info in request with consistent _id field
+      // Add user info to request
       req.user = {
-        _id: userId,
-        role: decoded.role || 'user',
+        _id: decoded.id,
+        role: decoded.role,
         email: decoded.email
       };
 
-      debug('User set in request:', req.user);
+      logger.debug('[JWT Debug] User set in request:', req.user);
       next();
     } catch (err) {
-      debug('JWT Verification Error:', {
-        name: err.name,
-        message: err.message
-      });
-
-      if (err instanceof ApiError) {
-        throw err;
-      }
-      
-      if (err.name === 'TokenExpiredError') {
-        throw new ApiError(401, 'Token expired. Please login again.');
-      }
       if (err.name === 'JsonWebTokenError') {
-        throw new ApiError(401, 'Invalid token. Please login again.');
+        throw new ApiError(401, 'Invalid token');
       }
-      if (err.name === 'NotBeforeError') {
-        throw new ApiError(401, 'Token not yet active. Please try again.');
+      if (err.name === 'TokenExpiredError') {
+        throw new ApiError(401, 'Token has expired');
       }
-      
-      throw new ApiError(401, `Token verification failed: ${err.message}`);
+      throw new ApiError(401, 'Token verification failed');
     }
   } catch (error) {
-    next(error);
-  }
-};
-
-const generateToken = (user) => {
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET is not configured');
-  }
-
-  // Use consistent field name 'id' in token payload
-  const token = jwt.sign(
-    {
-      id: user._id, // Use 'id' to match what we're receiving
-      email: user.email,
-      role: user.role || 'user'
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_EXPIRES_IN || '24h',
-      algorithm: 'HS256'
+    if (error instanceof ApiError) {
+      return ApiResponse.error(res, error.statusCode, error.message);
     }
-  );
-
-  debug('Generated new token:', {
-    user: user._id,
-    tokenPrefix: token.substring(0, 10) + '...'
-  });
-
-  return token;
+    logger.error('JWT Verification Error:', error);
+    return ApiResponse.error(res, 500, 'Internal server error during authentication');
+  }
 };
 
 module.exports = {
+  generateToken,
   verifyToken,
-  generateToken
+  JWT_SECRET,
+  JWT_EXPIRES_IN
 };

@@ -1,95 +1,130 @@
-// src/services/email.service.js
-const nodemailer = require('nodemailer');
+const { google } = require('googleapis');
 const logger = require('../utils/logger');
 
 class EmailService {
   constructor() {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
-      throw new Error('Email credentials not configured. Please check your .env file.');
-    }
-
-    this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587, // Change to port 587 for TLS
-      secure: false, // Use TLS
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_APP_PASSWORD
-      },
-      tls: {
-        rejectUnauthorized: false // Allow self-signed certificates
-      },
-      timeout: 10000, // Set timeout to 10 seconds
-      debug: true,
-      logger: true
-    });
-
-    // Test configuration
-    this.testConnection();
+    this.validateEnvironmentVars();
+    this.retryAttempts = 3;
+    this.retryDelay = 2000;
+    this.initializeGmail();
   }
 
-  async testConnection() {
+  validateEnvironmentVars() {
+    const requiredVars = [
+      'GMAIL_CLIENT_ID',
+      'GMAIL_CLIENT_SECRET',
+      'GMAIL_REFRESH_TOKEN',
+      'GMAIL_EMAIL'
+    ];
+
+    const missingVars = requiredVars.filter(varName => !process.env[varName]);
+    if (missingVars.length > 0) {
+      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    }
+  }
+
+  initializeGmail() {
     try {
-      const verifyResult = await this.transporter.verify();
-      if (verifyResult) {
-        logger.info('SMTP connection configured successfully');
-      }
+      this.oauth2Client = new google.auth.OAuth2(
+        process.env.GMAIL_CLIENT_ID,
+        process.env.GMAIL_CLIENT_SECRET,
+        'https://developers.google.com/oauthplayground'
+      );
+
+      this.oauth2Client.setCredentials({
+        refresh_token: process.env.GMAIL_REFRESH_TOKEN
+      });
+
+      this.gmail = google.gmail({ 
+        version: 'v1', 
+        auth: this.oauth2Client 
+      });
+
+      logger.info('Gmail API service initialized successfully');
     } catch (error) {
-      logger.error('SMTP configuration error:', error);
-      // Try alternative configuration if first one fails
-      this.setupAlternativeTransport();
+      logger.error('Failed to initialize Gmail API service:', error);
+      throw error;
     }
   }
 
-  setupAlternativeTransport() {
-    logger.info('Attempting alternative SMTP configuration...');
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_APP_PASSWORD
-      },
-      tls: {
-        rejectUnauthorized: false
-      },
-      debug: true,
-      logger: true
-    });
+  async sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  createMimeMessage(options) {
+    const boundary = '____boundary____';
+    
+    const mimeHeaders = [
+      `From: ${options.fromName || 'Movie Reminder'} <${process.env.GMAIL_EMAIL}>`,
+      `To: ${options.to}`,
+      `Subject: ${options.subject}`,
+      'MIME-Version: 1.0',
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      '',
+      `--${boundary}`,
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      options.text || 'Please view this email in an HTML-compatible email client.',
+      '',
+      `--${boundary}`,
+      'Content-Type: text/html; charset=utf-8',
+      '',
+      options.html,
+      '',
+      `--${boundary}--`
+    ].join('\r\n');
+
+    return Buffer.from(mimeHeaders)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  }
+
+  async sendMailWithRetry(emailOptions, attempt = 1) {
+    try {
+      const raw = this.createMimeMessage(emailOptions);
+      
+      const result = await this.gmail.users.messages.send({
+        userId: 'me',
+        requestBody: { raw }
+      });
+
+      logger.info(`Email sent successfully: ${result.data.id}`);
+      return { 
+        success: true, 
+        messageId: result.data.id 
+      };
+    } catch (error) {
+      logger.warn(`Email sending failed (attempt ${attempt}):`, error);
+
+      if (attempt < this.retryAttempts) {
+        logger.info(`Retrying... Attempt ${attempt + 1} of ${this.retryAttempts}`);
+        await this.sleep(this.retryDelay * attempt);
+        return this.sendMailWithRetry(emailOptions, attempt + 1);
+      }
+
+      logger.error('All email sending attempts failed');
+      return { 
+        success: false, 
+        error: error.message 
+      };
+    }
   }
 
   async sendMail(options) {
-    try {
-      const info = await this.transporter.sendMail({
-        ...options,
-        from: `"Movie Reminder" <${process.env.EMAIL_USER}>`,
-        to: "hammadzahid254@gmail.com" // Always send to this email
-      });
-      logger.info(`Email sent successfully: ${info.messageId}`);
-      return { success: true, messageId: info.messageId };
-    } catch (error) {
-      logger.error('Failed to send email:', error);
-      // Try with alternative configuration if first attempt fails
-      try {
-        this.setupAlternativeTransport();
-        const info = await this.transporter.sendMail({
-          ...options,
-          from: `"Movie Reminder" <${process.env.EMAIL_USER}>`,
-          to: "hammadzahid254@gmail.com"
-        });
-        logger.info(`Email sent successfully with alternative config: ${info.messageId}`);
-        return { success: true, messageId: info.messageId };
-      } catch (retryError) {
-        logger.error('Failed to send email with alternative config:', retryError);
-        return { success: false, error: retryError.message };
-      }
-    }
+    const emailOptions = {
+      ...options,
+      fromName: options.fromName || 'Movie Reminder',
+      to: options.to
+    };
+
+    return this.sendMailWithRetry(emailOptions);
   }
 
   async sendReleaseReminder(user, movie) {
     return this.sendMail({
+      to: user.email,
       subject: `🎬 "${movie.title}" - Reminder Set!`,
       html: this._getReleaseEmailTemplate(user.name, movie)
     });
@@ -97,6 +132,7 @@ class EmailService {
 
   async sendTrailerNotification(user, movie) {
     return this.sendMail({
+      to: user.email,
       subject: `🎥 New trailer for "${movie.title}"!`,
       html: this._getTrailerEmailTemplate(user.name, movie)
     });
@@ -104,6 +140,7 @@ class EmailService {
 
   async sendGenericNotification(user, notification) {
     return this.sendMail({
+      to: user.email,
       subject: notification.title,
       html: this._getGenericNotificationTemplate(user.name, notification)
     });

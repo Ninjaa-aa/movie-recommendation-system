@@ -1,37 +1,35 @@
-// src/utils/mailConfigTest.js
-const nodemailer = require('nodemailer');
 const { google } = require('googleapis');
-require('dotenv').config(); // Add this to load environment variables
+const dns = require('dns');
+require('dotenv').config();
 
 class MailConfigTest {
-  static async getIPv4Address() {
+  static async testConnection(host) {
     try {
-      // Force IPv4 lookup
-      const addresses = await dns.resolve4('smtp.gmail.com');
-      return addresses[0]; // Get first IPv4 address
+      const addresses = await dns.promises.resolve4(host);
+      return { success: true, addresses };
     } catch (error) {
-      // logger.warn('IPv4 resolution failed:', error);
-      return null;
+      return { success: false, error: error.message };
     }
   }
+
   static async testOAuthConfig() {
     const results = {
       envVars: {},
+      networkConnectivity: {},
       oauth: null,
-      smtp: null,
+      gmailApi: null,
       overall: false
     };
 
-    console.log('\n🔍 Testing Mail Configuration...\n');
+    console.log('\n🔍 Testing Gmail API Configuration...\n');
 
-    // 1. Check environment variables
+    // 1. Environment Variables Check
     console.log('1️⃣ Checking Environment Variables:');
     const requiredVars = [
       'GMAIL_CLIENT_ID',
       'GMAIL_CLIENT_SECRET',
       'GMAIL_REFRESH_TOKEN',
-      'GMAIL_EMAIL',
-      'GMAIL_APP_PASSWORD'
+      'GMAIL_EMAIL'
     ];
 
     let allEnvVarsPresent = true;
@@ -45,10 +43,21 @@ class MailConfigTest {
     });
     console.log();
 
-    // Only proceed with OAuth and SMTP tests if environment variables are present
+    // 2. Network Connectivity Test
+    console.log('2️⃣ Testing Network Connectivity:');
+    
+    // DNS Resolution Test for Gmail API
+    const googleApis = ['gmail.googleapis.com', 'oauth2.googleapis.com'];
+    for (const host of googleApis) {
+      const result = await this.testConnection(host);
+      results.networkConnectivity[host] = result;
+      console.log(`  ${result.success ? '✅' : '❌'} ${host} Resolution: ${result.success ? result.addresses[0] : result.error}`);
+    }
+    console.log();
+
     if (allEnvVarsPresent) {
-      // 2. Test OAuth2 Configuration
-      console.log('2️⃣ Testing OAuth2 Configuration:');
+      // 3. OAuth2 Test
+      console.log('3️⃣ Testing OAuth2 Configuration:');
       try {
         const oauth2Client = new google.auth.OAuth2(
           process.env.GMAIL_CLIENT_ID,
@@ -61,109 +70,152 @@ class MailConfigTest {
         });
 
         const { token } = await oauth2Client.getAccessToken();
-        results.oauth = {
-          success: true,
-          token: !!token,
-          error: null
-        };
+        results.oauth = { success: true, token: !!token };
         console.log('  ✅ OAuth2 configuration successful');
+
+        // 4. Test Gmail API
+        console.log('\n4️⃣ Testing Gmail API:');
+        try {
+          const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+          
+          // Test by getting user profile
+          const profile = await gmail.users.getProfile({
+            userId: 'me'
+          });
+
+          // Test sending a test email
+          const testEmail = {
+            raw: Buffer.from(
+              `From: ${process.env.GMAIL_EMAIL}\r\n` +
+              `To: ${process.env.GMAIL_EMAIL}\r\n` +
+              'Subject: Gmail API Test\r\n\r\n' +
+              'This is a test email from the Gmail API configuration test.'
+            ).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+          };
+
+          const sentEmail = await gmail.users.messages.send({
+            userId: 'me',
+            requestBody: testEmail
+          });
+
+          results.gmailApi = { 
+            success: true, 
+            emailAddress: profile.data.emailAddress,
+            messagesTotal: profile.data.messagesTotal,
+            testEmailId: sentEmail.data.id
+          };
+
+          console.log('  ✅ Gmail API connection successful');
+          console.log(`  ✅ Connected as: ${profile.data.emailAddress}`);
+          console.log(`  ✅ Test email sent successfully (ID: ${sentEmail.data.id})`);
+        } catch (apiError) {
+          console.log('  ❌ Gmail API failed:', apiError.message);
+          results.gmailApi = { 
+            success: false, 
+            error: apiError.message 
+          };
+        }
       } catch (error) {
-        results.oauth = {
-          success: false,
-          token: false,
-          error: error.message
-        };
+        results.oauth = { success: false, error: error.message };
         console.log(`  ❌ OAuth2 configuration failed: ${error.message}`);
       }
-      console.log();
-
-      // 3. Test SMTP Connection
-      // Get IPv4 address
-      const ipv4Address = await this.getIPv4Address();
-      console.log('3️⃣ Testing SMTP Connection:');
-      try {
-        const transport = nodemailer.createTransport({
-          host: ipv4Address || 'smtp.gmail.com',
-          port: 465,
-          secure: true,
-          family: 4, // Force IPv4
-          auth: {
-            user: process.env.GMAIL_EMAIL,
-            pass: process.env.GMAIL_APP_PASSWORD
-          },
-          pool: true,
-          maxConnections: 3,
-          maxMessages: 100,
-          connectionTimeout: 10000,
-          greetingTimeout: 5000,
-          socketTimeout: 10000,
-        });
-
-        await transport.verify();
-        results.smtp = {
-          success: true,
-          error: null
-        };
-        console.log('  ✅ SMTP connection successful');
-      } catch (error) {
-        results.smtp = {
-          success: false,
-          error: error.message
-        };
-        console.log(`  ❌ SMTP connection failed: ${error.message}`);
-      }
-      console.log();
     }
 
     // Overall status
-    results.overall = results.oauth?.success || results.smtp?.success;
+    results.overall = results.oauth?.success && results.gmailApi?.success;
 
-    // Display configuration advice if there are issues
+    console.log('\n📊 Test Summary:');
+    console.log(`  • Environment Variables: ${allEnvVarsPresent ? '✅' : '❌'}`);
+    console.log(`  • Network Connectivity: ${Object.values(results.networkConnectivity).every(r => r.success) ? '✅' : '❌'}`);
+    console.log(`  • OAuth2 Configuration: ${results.oauth?.success ? '✅' : '❌'}`);
+    console.log(`  • Gmail API Connection: ${results.gmailApi?.success ? '✅' : '❌'}`);
+    console.log(`\n🎯 Overall Status: ${results.overall ? '✅ PASSED' : '❌ FAILED'}`);
+
     if (!results.overall) {
-      console.log('📋 Configuration Advice:');
-      const advice = this.getConfigurationAdvice(results);
-      advice.forEach(tip => console.log(`  • ${tip}`));
-      console.log();
+      console.log('\n🔧 Troubleshooting Recommendations:');
+      if (!Object.values(results.networkConnectivity).every(r => r.success)) {
+        console.log('  • Check your internet connection');
+        console.log('  • Verify access to Google APIs');
+        console.log('  • Check if any firewall is blocking Google API access');
+      }
+      if (!results.oauth?.success) {
+        console.log('  • Verify your Google Cloud Project settings');
+        console.log('  • Check if Gmail API is enabled in Google Cloud Console');
+        console.log('  • Regenerate your OAuth credentials');
+      }
+      if (!results.gmailApi?.success) {
+        console.log('  • Verify Gmail API scopes in OAuth consent screen');
+        console.log('  • Check if your Google account has Gmail API access');
+        console.log('  • Try refreshing your OAuth tokens');
+      }
     }
 
-    console.log(`🎯 Overall Status: ${results.overall ? '✅ PASSED' : '❌ FAILED'}`);
     return results;
   }
 
-  static getConfigurationAdvice(results) {
-    const advice = [];
+  // Method to send a test email using Gmail API
+  static async sendTestEmail({ to, subject, body }) {
+    try {
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GMAIL_CLIENT_ID,
+        process.env.GMAIL_CLIENT_SECRET,
+        'https://developers.google.com/oauthplayground'
+      );
 
-    // Environment Variables Advice
-    Object.entries(results.envVars).forEach(([varName, status]) => {
-      if (!status.exists || !status.valid) {
-        advice.push(`${varName} is ${!status.exists ? 'missing' : 'empty'}. Please set this environment variable.`);
-      }
-    });
+      oauth2Client.setCredentials({
+        refresh_token: process.env.GMAIL_REFRESH_TOKEN
+      });
 
-    // OAuth Advice
-    if (!results.oauth?.success) {
-      advice.push('OAuth configuration failed. Please verify:');
-      advice.push('  - Your Google Cloud Console project is active');
-      advice.push('  - OAuth2 credentials are correct');
-      advice.push('  - Gmail API is enabled in your project');
-      advice.push('  - Refresh token is valid and not expired');
+      const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+      const email = {
+        raw: Buffer.from(
+          `From: ${process.env.GMAIL_EMAIL}\r\n` +
+          `To: ${to}\r\n` +
+          `Subject: ${subject}\r\n\r\n` +
+          body
+        ).toString('base64')
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '')
+      };
+
+      const result = await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: email
+      });
+
+      return {
+        success: true,
+        messageId: result.data.id
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
     }
-
-    // SMTP Advice
-    if (!results.smtp?.success) {
-      advice.push('SMTP connection failed. Please verify:');
-      advice.push('  - Your network allows outbound connections to smtp.gmail.com:465');
-      advice.push('  - Your Gmail account has App Password set up correctly');
-      advice.push('  - Your Gmail account is not blocked or requiring additional verification');
-    }
-
-    return advice;
   }
 }
 
 // Auto-run test if this file is run directly
 if (require.main === module) {
-  MailConfigTest.testOAuthConfig().catch(console.error);
+  MailConfigTest.testOAuthConfig()
+    .then(async (results) => {
+      if (results.overall) {
+        console.log('\n📧 Sending test email...');
+        const testResult = await MailConfigTest.sendTestEmail({
+          to: process.env.GMAIL_EMAIL,
+          subject: 'Gmail API Test Email',
+          body: 'This is a test email sent using the Gmail API.'
+        });
+        console.log(testResult.success ? 
+          `✅ Test email sent successfully (ID: ${testResult.messageId})` : 
+          `❌ Failed to send test email: ${testResult.error}`
+        );
+      }
+    })
+    .catch(console.error);
 }
 
 module.exports = MailConfigTest;
