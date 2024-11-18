@@ -1,4 +1,4 @@
-// src/api/v1/recommendations/recommendation.controller.js
+// src/controllers/recommendation.controller.js
 const { catchAsync } = require('../utils/catchAsync');
 const { ApiResponse } = require('../utils/apiResponse');
 const recommendationService = require('../services/recommendation.service');

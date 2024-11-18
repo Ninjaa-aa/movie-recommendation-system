@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Movie = require('../models/movie.model');
 const ApiError = require('../utils/ApiError'); // Fixed import
 const { getPagination } = require('../utils/pagination');
-
+const recommendationService = require('./recommendation.service');
 class MovieService {
   /**
    * Create a new movie
@@ -38,6 +38,9 @@ class MovieService {
       if (!movie) {
         throw new ApiError(404, 'Movie not found');
       }
+
+      // Update trending score for movie view
+      await recommendationService.updateTrendingScore(movieId, 'view');
 
       Object.assign(movie, updateData);
       await movie.save();
@@ -95,6 +98,9 @@ class MovieService {
       if (!movie) {
         throw new ApiError(404, 'Movie not found');
       }
+
+      // Update trending score for movie view
+      await recommendationService.updateTrendingScore(movieId, 'view');
 
       return movie;
     } catch (error) {
